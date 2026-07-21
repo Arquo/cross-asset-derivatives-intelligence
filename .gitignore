@@ -7,4 +7,5 @@ env/
 .DS_Store
 *.db
 *.duckdb
+.env
 
