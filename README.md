@@ -1,47 +1,133 @@
 # Cross-Asset Derivatives Intelligence Platform
 
-This project is a Streamlit dashboard for cross-asset derivatives research.
+Cross-Asset Derivatives Intelligence Platform is a portfolio project for research and market-monitoring workflows across macro, positioning, options, liquidity, and cross-asset signals.
 
-## Current milestone
+## Current Status
 
-The first real module is **Macro Regime**, powered by official FRED data.
+Phase 1A established the foundation package, schemas, tests, and the original Streamlit MVP.
+
+Phase 1B adds the first free-data pipeline:
+
+- FRED macro and rates ingestion
+- yfinance daily market-price ingestion
+- Immutable raw snapshots
+- Validation and DuckDB storage
+- Pipeline-run metadata
+- A DuckDB-backed data-status dashboard
+
+## Free Data Sources
+
+- FRED: official macro, rates, credit, and liquidity series
+- yfinance: unofficial historical daily market prices
 
 ## Setup
 
-1. Create a local `.env` file from the example file:
+PowerShell:
 
-```bash
-copy .env.example .env
+```powershell
+.\.venv\Scripts\Activate.ps1
+python -m pip install -e .
 ```
 
-2. Add your FRED API key to `.env`:
+Create a local `.env` file:
 
-```bash
-FRED_API_KEY=your_real_key_here
+```env
+FRED_API_KEY=<your key>
 ```
 
-3. Install dependencies:
+## Install Dependencies
 
-```bash
-python -m venv .venv
-.venv\Scripts\python -m pip install -r requirements.txt
+```powershell
+python -m pip install -e .
 ```
 
-## Run tests
+## Pipeline Commands
 
-```bash
-.venv\Scripts\python -m pytest
+Run both providers:
+
+```powershell
+python -m cross_asset_intelligence.pipelines.run_free_data --start 2015-01-01 --provider all
 ```
 
-## Launch the app
+Run only market data:
 
-```bash
-.venv\Scripts\streamlit run app.py
+```powershell
+python -m cross_asset_intelligence.pipelines.run_free_data --start 2015-01-01 --provider market
 ```
 
-## Notes
+Run only FRED:
 
-- The app reads `FRED_API_KEY` from `.env`.
-- Market data is cached in Streamlit for six hours.
-- Tests use synthetic data only and do not call the live FRED API.
+```powershell
+python -m cross_asset_intelligence.pipelines.run_free_data --start 2015-01-01 --provider fred
+```
+
+Dry run:
+
+```powershell
+python -m cross_asset_intelligence.pipelines.run_free_data --start 2015-01-01 --provider all --dry-run
+```
+
+## Launch Streamlit
+
+```powershell
+python -m streamlit run app.py
+```
+
+## Run Tests
+
+```powershell
+python -m pytest
+```
+
+## Local Data Directories
+
+- `data/raw/fred/`
+- `data/raw/market/`
+- `data/processed/`
+- `data/sample/`
+
+The DuckDB database is stored at:
+
+```text
+data/processed/cross_asset_intelligence.duckdb
+```
+
+## Data-Refresh Workflow
+
+1. Run the pipeline.
+2. Review the DuckDB tables.
+3. Open Streamlit to inspect freshness and provider status.
+4. Re-run the pipeline for newer dates when needed.
+
+## Troubleshooting
+
+- Missing FRED API key: market data can still run, but FRED is skipped.
+- Empty database: run the pipeline first.
+- Stale data: check the provider freshness date in the data-status page.
+- Partial success: inspect `data_quality_events` and `pipeline_runs`.
+
+## Limitations
+
+- Market data is historical or delayed, not real time.
+- yfinance is unofficial.
+- No options, CFTC, AI, or trading logic exists yet.
+- Historical FRED data in Phase 1B is not vintage-safe.
+
+## Roadmap
+
+- Week 1: Foundation and data contracts
+- Week 2: Deterministic analytics and CFTC positioning
+- Week 3: SPY and QQQ options plus structured AI synthesis
+- Week 4: Dashboard, testing, case studies, and presentation
+
+## Phase 1 Checklist
+
+- [x] Foundation package
+- [x] Standard schemas
+- [x] Provider interfaces
+- [x] Product docs
+- [x] Unit tests
+- [x] Free-data pipeline
+- [x] DuckDB storage
+- [x] Data-status dashboard
 

@@ -1,109 +1,109 @@
 from __future__ import annotations
 
-import os
+from pathlib import Path
 
 import pandas as pd
 import plotly.graph_objects as go
-import requests
 import streamlit as st
-from dotenv import load_dotenv
 
-from src.analytics.macro_regime import SERIES_IDS, build_macro_regime_result, build_series_snapshot
+from cross_asset_intelligence.services.data_status_service import DataStatusService
 
 
-load_dotenv()
+DATABASE_PATH = Path("data/processed/cross_asset_intelligence.duckdb")
 
 
 st.set_page_config(
     page_title="Cross-Asset Derivatives Intelligence Platform",
-    page_icon="📈",
+    page_icon="CA",
     layout="wide",
 )
 
+MODULES = [
+    ("Macro", "Macro regime, inflation, labor, and rates context."),
+    ("Positioning", "Futures and positioning evidence when the data layer arrives."),
+    ("Options", "Volatility, skew, and options structure analysis."),
+    ("Market Structure", "Liquidity, trend, and structure proxies."),
+    ("Liquidity", "Flow, depth, and stress indicators."),
+    ("Cross-Asset", "Relationships across rates, FX, equities, credit, and commodities."),
+]
 
-def format_value(value: float | None, suffix: str = "") -> str:
+
+def _card(title: str, description: str) -> str:
+    return f"""
+    <div class="module-card">
+        <h3>{title}</h3>
+        <p>{description}</p>
+    </div>
+    """
+
+
+def _fmt_dt(value):
     if value is None or pd.isna(value):
         return "N/A"
-    return f"{value:,.2f}{suffix}"
-
-
-def format_timestamp(value: pd.Timestamp | None) -> str:
-    if value is None or pd.isna(value):
-        return "N/A"
-    if getattr(value, "tzinfo", None) is not None:
-        value = value.tz_convert(None)
-    return value.strftime("%Y-%m-%d")
-
-
-def format_datetime(value: pd.Timestamp | None) -> str:
-    if value is None or pd.isna(value):
-        return "N/A"
-    if getattr(value, "tzinfo", None) is not None:
-        value = value.tz_convert(None)
-    return value.strftime("%Y-%m-%d %H:%M UTC")
-
-
-def macro_regime_badge(label: str) -> str:
-    color = {
-        "Goldilocks": "#166534",
-        "Reflation": "#92400e",
-        "Disinflationary slowdown": "#1d4ed8",
-        "Stagflation risk": "#b91c1c",
-        "Mixed / transitioning": "#4b5563",
-        "Insufficient data": "#6b7280",
-    }.get(label, "#4b5563")
-    return f"<span style='display:inline-block;padding:0.35rem 0.8rem;border-radius:999px;background:{color};color:white;font-weight:600'>{label}</span>"
-
-
-def latest_series_value(series_id: str):
-    match = macro_result.series_table.loc[macro_result.series_table["FRED series ID"] == series_id, "Latest value"]
-    if match.empty:
-        return None
-    return match.iloc[0]
-
-
-@st.cache_data(ttl=21600, show_spinner="Loading FRED macro series...")
-def load_macro_data(api_key: str):
-    with requests.Session() as session:
-        snapshots = {
-            series_id: build_series_snapshot(series_id, api_key, session=session)
-            for series_id in SERIES_IDS
-        }
-    return build_macro_regime_result(snapshots)
+    return pd.Timestamp(value).strftime("%Y-%m-%d %H:%M UTC")
 
 
 st.markdown(
     """
     <style>
     .hero {
-        padding: 1.5rem 0 0.5rem 0;
+        padding: 1.75rem 0 0.75rem 0;
     }
     .hero h1 {
-        font-size: 2.6rem;
-        margin-bottom: 0.35rem;
+        font-size: 2.7rem;
+        margin-bottom: 0.4rem;
     }
     .hero p {
-        color: #4b5563;
+        color: #cbd5e1;
         font-size: 1.05rem;
         max-width: 980px;
     }
-    .section-card {
-        border: 1px solid #e5e7eb;
-        border-radius: 16px;
-        padding: 1rem 1.1rem;
-        background: white;
-        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
-    }
-    .module-chip {
+    .phase-pill {
         display: inline-block;
-        padding: 0.35rem 0.7rem;
+        padding: 0.35rem 0.8rem;
         border-radius: 999px;
-        background: #eef2ff;
-        color: #3730a3;
-        font-size: 0.82rem;
+        background: #1f2937;
+        color: white;
         font-weight: 600;
-        margin-right: 0.35rem;
+        margin-bottom: 0.5rem;
+    }
+    .module-card {
+        border: 1px solid #334155;
+        border-radius: 16px;
+        padding: 1rem 1.05rem;
+        background: #111827;
+        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.2);
+        min-height: 122px;
+    }
+    .module-card h3 {
         margin-bottom: 0.35rem;
+        font-size: 1.08rem;
+        color: #e2e8f0;
+    }
+    .module-card p {
+        margin: 0;
+        color: #94a3b8;
+        font-size: 0.95rem;
+    }
+    .status-note {
+        padding: 0.9rem 1rem;
+        border-radius: 14px;
+        background: rgba(59, 130, 246, 0.12);
+        color: #bfdbfe;
+        border: 1px solid rgba(59, 130, 246, 0.24);
+    }
+    div.stButton > button {
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        color: white;
+        border: 1px solid rgba(147, 197, 253, 0.35);
+        border-radius: 999px;
+        padding: 0.6rem 1rem;
+        font-weight: 700;
+    }
+    div.stButton > button:hover {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        border-color: rgba(191, 219, 254, 0.55);
+        color: white;
     }
     </style>
     """,
@@ -113,147 +113,173 @@ st.markdown(
 st.markdown(
     """
     <div class="hero">
+        <div class="phase-pill">Phase 1 - Foundation</div>
         <h1>Cross-Asset Derivatives Intelligence Platform</h1>
         <p>
-            A focused dashboard for market regime analysis across rates, inflation, labour,
-            and the Treasury curve using official FRED data.
+            A research and market-monitoring workspace for combining macro data, positioning,
+            options, liquidity, and cross-asset evidence into transparent market views.
         </p>
     </div>
     """,
     unsafe_allow_html=True,
 )
 
-api_key = os.getenv("FRED_API_KEY", "").strip()
+st.info("Market data is not connected yet. This phase focuses on repository foundation, contracts, docs, and CI.")
 
-if not api_key:
-    st.error("FRED_API_KEY is missing. Add it to your local .env file using .env.example as the template.")
-    st.stop()
+if "show_market_analysis" not in st.session_state:
+    st.session_state.show_market_analysis = False
 
-try:
-    macro_result = load_macro_data(api_key)
-except Exception:
-    st.error("Unable to load Macro Regime data from FRED right now. Please check your API key and network connection.")
-    st.stop()
+if st.button("Analyze Today's Market"):
+    st.session_state.show_market_analysis = True
 
-retrieved_at = pd.Timestamp.utcnow()
+if st.session_state.show_market_analysis:
+    st.write("")
+    st.info("Market analysis modules are not connected yet.")
 
+st.subheader("Planned Modules")
+for start in range(0, len(MODULES), 3):
+    cols = st.columns(3)
+    for col, (title, description) in zip(cols, MODULES[start : start + 3]):
+        with col:
+            st.markdown(_card(title, description), unsafe_allow_html=True)
+
+with st.expander("Project methodology"):
+    st.markdown(
+        """
+        - Start with data freshness, observation timestamps, and clear quality flags.
+        - Normalize every provider into shared observation and report schemas.
+        - Keep deterministic analytics separate from the Streamlit interface.
+        - Build evidence packs that include supporting and contradicting signals.
+        - Preserve the boundary between validated data and any future AI summary layer.
+        - Surface missing data and limitations instead of hiding them.
+        """
+    )
+
+st.write("")
+st.header("Data Status")
 st.markdown(
-    f"""
-    <div class="section-card">
-        <div style="margin-bottom:0.75rem">
-            <span class="module-chip">Macro Regime</span>
-            <span class="module-chip">Official FRED API</span>
-        </div>
-        <div>{macro_regime_badge(macro_result.overall_macro_regime)}</div>
-    </div>
-    """,
+    "<div class='status-note'>Data shown in this phase is historical or delayed and should not be treated as a real-time trading feed.</div>",
     unsafe_allow_html=True,
 )
 
-st.write("")
-st.subheader("Regime Labels")
-regime_cols = st.columns(5)
-regime_cards = [
-    ("Overall", macro_result.overall_macro_regime),
-    ("Inflation", macro_result.inflation_regime),
-    ("Labour", macro_result.labour_regime),
-    ("Policy", macro_result.policy_regime),
-    ("Yield curve", macro_result.yield_curve_regime),
-]
-for col, (label, value) in zip(regime_cols, regime_cards):
-    with col:
-        st.metric(label, value)
+service = DataStatusService(DATABASE_PATH)
 
-st.write("")
-info_cols = st.columns(2)
-with info_cols[0]:
-    st.metric("Latest economic observation date", format_timestamp(macro_result.latest_observation_timestamp))
-with info_cols[1]:
-    st.metric("Data retrieved at", format_datetime(retrieved_at))
+if not service.has_database():
+    st.warning("No local DuckDB database was found yet.")
+    st.code(r"python -m cross_asset_intelligence.pipelines.run_free_data --start 2015-01-01 --provider all")
+    st.stop()
 
-st.write("")
-st.subheader("Main Indicators")
-metrics = [
-    ("Effective Fed Funds Rate", macro_result.indicators["FFR 3m change"], format_value(latest_series_value("DFF"), "%"), "3m change"),
-    ("2Y Treasury Yield", macro_result.indicators["2Y change 20d"], format_value(latest_series_value("DGS2"), "%"), "20d change"),
-    ("10Y Treasury Yield", macro_result.indicators["10Y change 20d"], format_value(latest_series_value("DGS10"), "%"), "20d change"),
-    ("Yield Curve Slope", None, format_value(macro_result.indicators["Latest yield-curve slope"], "%"), "10Y - 2Y"),
-    ("10Y Real Yield", macro_result.indicators["10Y real yield change 20d"], format_value(latest_series_value("DFII10"), "%"), "20d change"),
-    ("Breakeven Inflation", None, format_value(latest_series_value("T10YIE"), "%"), "latest"),
-    ("CPI YoY Inflation", None, format_value(macro_result.indicators["CPI YoY %"], "%"), "year-over-year"),
-    ("Unemployment Rate", macro_result.indicators["Unemployment 3m change"], format_value(latest_series_value("UNRATE"), "%"), "3m change"),
-]
+summary = service.get_summary()
+latest_run = service.latest_pipeline_run()
+dataset_status = service.latest_dataset_status()
+rows_by_dataset = service.rows_by_dataset()
+fred_table = service.fred_latest_table()
+market_table = service.market_latest_table()
+charts = service.chart_data()
 
-for idx in range(0, len(metrics), 4):
-    row = metrics[idx : idx + 4]
-    cols = st.columns(len(row))
-    for col, (label, delta, value, delta_label) in zip(cols, row):
-        with col:
-            st.metric(label, value, delta=None if delta is None else format_value(delta, "%"), help=delta_label)
+cols = st.columns(4)
+with cols[0]:
+    st.metric("Latest pipeline status", "N/A" if latest_run.empty else latest_run.iloc[0]["status"])
+with cols[1]:
+    last_success = pd.NaT
+    if not latest_run.empty and latest_run.iloc[0]["status"] in {"success", "partial_success"}:
+        last_success = latest_run.iloc[0]["completed_at"]
+    st.metric("Last successful ingestion", _fmt_dt(last_success))
+with cols[2]:
+    st.metric("Rows stored", int(rows_by_dataset["rows_stored"].sum()) if not rows_by_dataset.empty else 0)
+with cols[3]:
+    if summary.quality_events.empty:
+        warnings = rejects = 0
+    else:
+        warnings = int((summary.quality_events["severity"] == "warning").sum())
+        rejects = int((summary.quality_events["severity"].isin(["error", "critical"])).sum())
+    st.metric("Warnings / rejects", f"{warnings} / {rejects}")
 
-st.write("")
-st.subheader("Macro Regime Charts")
-chart_left, chart_right = st.columns(2)
-
-with chart_left:
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=macro_result.treasury_yield_data["date"], y=macro_result.treasury_yield_data["2Y"], name="2Y Treasury", mode="lines"))
-    fig.add_trace(go.Scatter(x=macro_result.treasury_yield_data["date"], y=macro_result.treasury_yield_data["10Y"], name="10Y Treasury", mode="lines"))
-    fig.update_layout(
-        title="Treasury Yields",
-        xaxis_title="Observation date",
-        yaxis_title="Yield (%)",
-        margin=dict(l=10, r=10, t=50, b=10),
-        legend_title_text="Series",
-        height=360,
+st.subheader("Provider Status")
+if dataset_status.empty:
+    st.info("No dataset catalog rows available yet.")
+else:
+    st.dataframe(
+        dataset_status.assign(
+            last_successful_ingestion=dataset_status["last_successful_ingestion"].apply(_fmt_dt),
+            latest_observation_ts=dataset_status["latest_observation_ts"].apply(_fmt_dt),
+        ),
+        use_container_width=True,
+        hide_index=True,
     )
-    st.plotly_chart(fig, use_container_width=True)
 
-with chart_right:
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=macro_result.yield_curve_chart_data["date"], y=macro_result.yield_curve_chart_data["spread"], name="10Y - 2Y Spread", mode="lines"))
-    fig.update_layout(
-        title="Yield Curve Spread",
-        xaxis_title="Observation date",
-        yaxis_title="Percentage points",
-        margin=dict(l=10, r=10, t=50, b=10),
-        height=360,
-    )
-    st.plotly_chart(fig, use_container_width=True)
+st.subheader("Rows by Dataset")
+st.dataframe(rows_by_dataset, use_container_width=True, hide_index=True)
 
-chart_left, chart_right = st.columns(2)
+col1, col2 = st.columns(2)
+with col1:
+    st.subheader("FRED Series")
+    if fred_table.empty:
+        st.info("No FRED rows stored yet.")
+    else:
+        st.dataframe(
+            fred_table.assign(
+                latest_observation_date=fred_table["latest_observation_date"].apply(_fmt_dt),
+                ingestion_date=fred_table["ingestion_date"].apply(_fmt_dt),
+            ),
+            use_container_width=True,
+            hide_index=True,
+        )
+with col2:
+    st.subheader("Market Prices")
+    if market_table.empty:
+        st.info("No market rows stored yet.")
+    else:
+        st.dataframe(
+            market_table.assign(
+                latest_trading_date=market_table["latest_trading_date"].apply(_fmt_dt),
+                ingestion_date=market_table["ingestion_date"].apply(_fmt_dt),
+            ),
+            use_container_width=True,
+            hide_index=True,
+        )
 
-with chart_left:
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=macro_result.inflation_chart_data["date"], y=macro_result.inflation_chart_data["CPI"], name="CPI", mode="lines"))
-    fig.update_layout(
-        title="Inflation: CPI Level",
-        xaxis_title="Observation date",
-        yaxis_title="Index",
-        margin=dict(l=10, r=10, t=50, b=10),
-        height=360,
-    )
-    st.plotly_chart(fig, use_container_width=True)
+st.subheader("Raw Data Charts")
+chart_col1, chart_col2 = st.columns(2)
+with chart_col1:
+    if charts.get("spy_qqq", pd.DataFrame()).empty:
+        st.info("No SPY/QQQ chart data yet.")
+    else:
+        fig = go.Figure()
+        for symbol in ["SPY", "QQQ"]:
+            subset = charts["spy_qqq"][charts["spy_qqq"]["symbol"] == symbol]
+            fig.add_trace(go.Scatter(x=subset["observation_ts"], y=subset["adjusted_close"], mode="lines", name=symbol))
+        fig.update_layout(title="SPY and QQQ Adjusted Close", height=350, xaxis_title="Date", yaxis_title="Adjusted Close")
+        st.plotly_chart(fig, use_container_width=True)
+with chart_col2:
+    if charts.get("yields", pd.DataFrame()).empty:
+        st.info("No Treasury yield data yet.")
+    else:
+        fig = go.Figure()
+        for series_id, label in [("DGS2", "2Y"), ("DGS10", "10Y")]:
+            subset = charts["yields"][charts["yields"]["series_id"] == series_id]
+            fig.add_trace(go.Scatter(x=subset["observation_ts"], y=subset["value"], mode="lines", name=label))
+        fig.update_layout(title="2Y and 10Y Treasury Yields", height=350, xaxis_title="Date", yaxis_title="Yield")
+        st.plotly_chart(fig, use_container_width=True)
 
-with chart_right:
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=macro_result.unemployment_chart_data["date"], y=macro_result.unemployment_chart_data["Unemployment rate"], name="Unemployment", mode="lines"))
-    fig.update_layout(
-        title="Labour Market: Unemployment Rate",
-        xaxis_title="Observation date",
-        yaxis_title="Percent",
-        margin=dict(l=10, r=10, t=50, b=10),
-        height=360,
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-st.write("")
-st.subheader("Series Snapshot")
-table = macro_result.series_table.copy()
-table["Latest observation date"] = table["Latest observation date"].apply(format_timestamp)
-table["Latest value"] = table["Latest value"].apply(lambda value: "N/A" if pd.isna(value) else f"{value:,.2f}")
-st.dataframe(table, use_container_width=True, hide_index=True)
-
-st.caption(
-    "Economic observation date is the latest FRED data date shown above. Data retrieved at shows when this app last loaded the series."
-)
+chart_col1, chart_col2 = st.columns(2)
+with chart_col1:
+    credit = charts.get("credit", pd.DataFrame())
+    if credit.empty:
+        st.info("No high-yield spread data yet.")
+    else:
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=credit["observation_ts"], y=credit["value"], mode="lines", name="High Yield OAS"))
+        fig.update_layout(title="High-Yield Spread", height=350, xaxis_title="Date", yaxis_title="Spread")
+        st.plotly_chart(fig, use_container_width=True)
+with chart_col2:
+    liquidity = charts.get("liquidity", pd.DataFrame())
+    if liquidity.empty:
+        st.info("No liquidity series data yet.")
+    else:
+        fig = go.Figure()
+        for series_id in ["WALCL", "WTREGEN", "RRPONTSYD", "WRESBAL"]:
+            subset = liquidity[liquidity["series_id"] == series_id]
+            fig.add_trace(go.Scatter(x=subset["observation_ts"], y=subset["value"], mode="lines", name=series_id))
+        fig.update_layout(title="Liquidity Proxies", height=350, xaxis_title="Date", yaxis_title="Value")
+        st.plotly_chart(fig, use_container_width=True)

@@ -3,4 +3,9 @@ pandas
 plotly
 requests
 python-dotenv
+pydantic
+pyyaml
 pytest
+duckdb
+pyarrow
+yfinance
