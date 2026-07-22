@@ -42,6 +42,8 @@ class ProviderConfig:
 
     provider_name: str
     implementation_status: str
+    data_category: str
+    expected_frequency: str
     source_type: str
     delayed: bool
     requires_credentials: bool
@@ -71,19 +73,21 @@ def load_pipeline_config(root_dir: Path | None = None) -> PipelineConfig:
     assets = _load_yaml(root / "configs" / "assets.yaml")
     data_sources = _load_yaml(root / "configs" / "data_sources.yaml")
 
+    asset_block = assets.get("assets", assets)
+
     fred_series = [
         FredSeriesConfig(**item)
-        for item in assets.get("fred_series", [])
+        for item in asset_block.get("fred_series", [])
     ]
     market_symbols = [
         MarketSymbolConfig(**item)
-        for item in assets.get("market_symbols", [])
+        for item in asset_block.get("market_symbols", asset_block.get("market", []))
     ]
     providers = [
         ProviderConfig(**item)
         for item in data_sources.get("providers", [])
     ]
-    stale_thresholds = assets.get("stale_thresholds", {})
+    stale_thresholds = asset_block.get("stale_thresholds", {})
     return PipelineConfig(
         fred_series=fred_series,
         market_symbols=market_symbols,

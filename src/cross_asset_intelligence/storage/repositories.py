@@ -30,10 +30,13 @@ class DuckDBRepository:
             initialize_database(connection)
             upsert_dataframe(connection, "macro_observations", frame, unique_columns=["series_id", "observation_ts"])
 
-    def insert_market_prices(self, frame: pd.DataFrame) -> None:
+    def insert_market_observations(self, frame: pd.DataFrame) -> None:
         with connect_duckdb(self.database_path) as connection:
             initialize_database(connection)
-            upsert_dataframe(connection, "market_prices", frame, unique_columns=["symbol", "observation_ts"])
+            upsert_dataframe(connection, "market_observations", frame, unique_columns=["symbol", "observation_ts"])
+
+    def insert_market_prices(self, frame: pd.DataFrame) -> None:
+        self.insert_market_observations(frame)
 
     def insert_quality_events(self, frame: pd.DataFrame) -> None:
         with connect_duckdb(self.database_path) as connection:
@@ -49,4 +52,3 @@ class DuckDBRepository:
         with connect_duckdb(self.database_path) as connection:
             initialize_database(connection)
             return connection.execute(query, params or ()).fetchdf()
-

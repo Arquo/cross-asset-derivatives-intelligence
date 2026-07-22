@@ -1,133 +1,158 @@
 # Cross-Asset Derivatives Intelligence Platform
 
-Cross-Asset Derivatives Intelligence Platform is a portfolio project for research and market-monitoring workflows across macro, positioning, options, liquidity, and cross-asset signals.
+Phase 2 is now the working baseline: data ingestion, validation, raw snapshot storage, DuckDB persistence, freshness reporting, and a professional Streamlit dashboard.
 
-## Current Status
+## What works now
 
-Phase 1A established the foundation package, schemas, tests, and the original Streamlit MVP.
+- Official FRED macro and rates ingestion
+- Replaceable yfinance market ingestion for the MVP asset universe
+- Immutable raw Parquet snapshots
+- Validated DuckDB tables
+- Data-quality events and freshness metadata
+- Streamlit pages for:
+  - Market Overview
+  - Macro Snapshot
+  - Data Freshness
+  - Methodology
 
-Phase 1B adds the first free-data pipeline:
+The platform is an end-of-day or delayed-data research system. It is not real time.
 
-- FRED macro and rates ingestion
-- yfinance daily market-price ingestion
-- Immutable raw snapshots
-- Validation and DuckDB storage
-- Pipeline-run metadata
-- A DuckDB-backed data-status dashboard
+## Environment
 
-## Free Data Sources
+Create a local `.env` file with:
 
-- FRED: official macro, rates, credit, and liquidity series
-- yfinance: unofficial historical daily market prices
+```env
+FRED_API_KEY=your_fred_api_key_here
+```
+
+The repository also includes `.env.example` as a template.
 
 ## Setup
 
 PowerShell:
 
 ```powershell
-.\.venv\Scripts\Activate.ps1
-python -m pip install -e .
+python -m venv .venv
+& .\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
 ```
 
-Create a local `.env` file:
-
-```env
-FRED_API_KEY=<your key>
-```
-
-## Install Dependencies
+## Initialize the database
 
 ```powershell
-python -m pip install -e .
+python scripts/initialize_database.py
 ```
 
-## Pipeline Commands
+This creates the DuckDB file at:
 
-Run both providers:
-
-```powershell
-python -m cross_asset_intelligence.pipelines.run_free_data --start 2015-01-01 --provider all
+```text
+data/database/cross_asset.duckdb
 ```
 
-Run only market data:
+## Ingest data
+
+Ingest both providers:
 
 ```powershell
-python -m cross_asset_intelligence.pipelines.run_free_data --start 2015-01-01 --provider market
+python scripts/ingest_data.py --provider all --start-date 2024-01-01
 ```
 
-Run only FRED:
+Ingest only FRED:
 
 ```powershell
-python -m cross_asset_intelligence.pipelines.run_free_data --start 2015-01-01 --provider fred
+python scripts/ingest_data.py --provider fred --start-date 2024-01-01
+```
+
+Ingest only market data:
+
+```powershell
+python scripts/ingest_data.py --provider market --symbols SPY QQQ --start-date 2024-01-01
 ```
 
 Dry run:
 
 ```powershell
-python -m cross_asset_intelligence.pipelines.run_free_data --start 2015-01-01 --provider all --dry-run
+python scripts/ingest_data.py --provider all --start-date 2024-01-01 --dry-run
 ```
 
-## Launch Streamlit
+Optional arguments:
+
+- `--end-date`
+- `--symbols`
+- `--series`
+
+## Launch the dashboard
 
 ```powershell
 python -m streamlit run app.py
 ```
 
-## Run Tests
+## Run tests
 
 ```powershell
 python -m pytest
 ```
 
-## Local Data Directories
+## Current data sources
 
-- `data/raw/fred/`
-- `data/raw/market/`
-- `data/processed/`
-- `data/sample/`
+- FRED series:
+  - DFF
+  - DGS2
+  - DGS10
+  - T10Y2Y
+  - DFII10
+  - T10YIE
+  - CPIAUCSL
+  - CPILFESL
+  - UNRATE
+  - ICSA
+  - BAMLH0A0HYM2
+  - WALCL
+  - RRPONTSYD
+  - WTREGEN
+- Market symbols:
+  - SPY
+  - QQQ
+  - IWM
+  - TLT
+  - HYG
+  - GLD
+  - USO
+  - UUP
+  - VIX
 
-The DuckDB database is stored at:
+## Data limitations
 
-```text
-data/processed/cross_asset_intelligence.duckdb
-```
+- FRED observation dates are not release timestamps.
+- yfinance is a replaceable vendor source, not an institutional feed.
+- The dashboard is designed for delayed or end-of-day research, not live trading.
+- No options, CFTC positioning, AI strategist, or trading workflow is implemented yet.
 
-## Data-Refresh Workflow
+## Raw storage and DuckDB
 
-1. Run the pipeline.
-2. Review the DuckDB tables.
-3. Open Streamlit to inspect freshness and provider status.
-4. Re-run the pipeline for newer dates when needed.
+- Raw provider snapshots are stored as Parquet under `data/raw/fred/` and `data/raw/market/`.
+- Validated tables live in DuckDB.
+- Pipeline metadata is stored in `pipeline_runs`.
+- Validation issues are stored in `data_quality_events`.
+- Dataset freshness is summarized in `dataset_catalog`.
 
-## Troubleshooting
+## Current dashboard pages
 
-- Missing FRED API key: market data can still run, but FRED is skipped.
-- Empty database: run the pipeline first.
-- Stale data: check the provider freshness date in the data-status page.
-- Partial success: inspect `data_quality_events` and `pipeline_runs`.
+- Market Overview
+- Macro Snapshot
+- Data Freshness
+- Methodology
 
-## Limitations
+## Planned future modules
 
-- Market data is historical or delayed, not real time.
-- yfinance is unofficial.
-- No options, CFTC, AI, or trading logic exists yet.
-- Historical FRED data in Phase 1B is not vintage-safe.
+- Positioning
+- Options
+- Market Structure
+- Liquidity
+- Cross-Asset
+- AI Strategist
 
-## Roadmap
+## Screenshots
 
-- Week 1: Foundation and data contracts
-- Week 2: Deterministic analytics and CFTC positioning
-- Week 3: SPY and QQQ options plus structured AI synthesis
-- Week 4: Dashboard, testing, case studies, and presentation
-
-## Phase 1 Checklist
-
-- [x] Foundation package
-- [x] Standard schemas
-- [x] Provider interfaces
-- [x] Product docs
-- [x] Unit tests
-- [x] Free-data pipeline
-- [x] DuckDB storage
-- [x] Data-status dashboard
+Add screenshots later once the dashboard styling is finalized. A good place to store them is `docs/screenshots/`.
 

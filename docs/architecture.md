@@ -1,46 +1,57 @@
 # Architecture
 
-## Implemented Flow
+## Phase 2 flow
 
 ```mermaid
 graph TD
     A[FRED / yfinance] --> B[Provider adapters]
-    B --> C[Immutable raw snapshots]
-    C --> D[Normalization]
-    D --> E[Validation]
-    E --> F[DuckDB]
-    F --> G[Data-status service]
-    G --> H[Streamlit]
-    E --> I[Tests and CI]
+    B --> C[Immutable raw Parquet snapshots]
+    B --> D[Normalization]
+    D --> E[Deterministic validation]
+    E --> F[DuckDB validated tables]
+    F --> G[Data-status and market-data services]
+    G --> H[Streamlit dashboard pages]
+    E --> I[Validation events]
+    F --> J[Dataset freshness summary]
 ```
 
-## External Data Sources
+## Data sources
 
-- FRED for macro, rates, credit, and liquidity series
-- yfinance for free daily historical market prices
+- FRED provides official macro, rates, inflation, labour, and liquidity series.
+- yfinance provides delayed daily market data for the portfolio MVP universe.
 
-## Provider and Ingestion Layer
+## Provider layer
 
-Providers fetch source-specific payloads, preserve provider symbols and source references, and save immutable raw snapshots before validated storage.
+- Provider classes keep source-specific logic isolated.
+- Providers never write to DuckDB directly.
+- Providers preserve source metadata and return schema-compatible records.
 
-## Data Validation Layer
+## Raw storage
 
-Validation separates warnings from rejections and preserves timestamps so the pipeline can detect stale, missing, malformed, or duplicate records.
+- Raw or minimally transformed provider payloads are written as Parquet.
+- Raw snapshots are partitioned by provider and ingestion date.
+- Files are uniquely named per pipeline run so repeated runs do not overwrite earlier snapshots.
 
-## Storage Layer
+## Validation layer
 
-Validated data is written to DuckDB, while raw snapshots are stored as immutable Parquet sidecars for traceability.
+- Validation is deterministic and rule-based.
+- Rejections and warnings are stored as data-quality events.
+- The system distinguishes missing, stale, delayed, and failed data.
 
-## Data-Status Layer
+## DuckDB layer
 
-The Streamlit app reads only from DuckDB through a service layer. It does not call FRED or yfinance directly.
+- DuckDB stores validated observations, pipeline runs, quality events, and dataset catalog rows.
+- Inserts are idempotent using natural keys.
+- The dashboard reads from DuckDB through services instead of querying providers directly.
 
-## AI Boundary
+## Dashboard layer
 
-Future AI features must work from validated tables and evidence packets. They must not interpret unrestricted raw provider data directly.
+- `Market Overview` shows the latest stored market data.
+- `Macro Snapshot` shows the latest stored FRED data.
+- `Data Freshness` shows observation age, ingestion time, and run status separately.
+- `Methodology` explains the data boundary and limitations.
 
-## Operations and Testing
+## UI boundary
 
-- Unit and integration tests run offline with mocks and synthetic fixtures.
-- GitHub Actions runs the same deterministic test suite on push and pull request.
-- Structured logging records pipeline progress without exposing secrets.
+The dashboard does not call FRED or yfinance directly. It only renders data prepared by service classes.
+

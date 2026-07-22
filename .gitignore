@@ -17,12 +17,15 @@ env/
 *.duckdb
 .duckdb.wal
 .env
+.streamlit/secrets.toml
 data/raw/*
 !data/raw/.gitkeep
 !data/raw/fred/.gitkeep
 !data/raw/market/.gitkeep
 data/processed/*
 !data/processed/.gitkeep
+data/database/*
+!data/database/.gitkeep
 logs/
 *.tmp
 *.temp

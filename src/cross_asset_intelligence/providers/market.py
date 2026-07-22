@@ -88,8 +88,10 @@ class YFinanceMarketProvider(DataProvider):
                 continue
             observation_ts = market_session_close_timestamp(trading_date)
             adjusted_close = row.get("Adj Close")
+            adjusted_close_status = "adjusted_close"
             if adjusted_close is None or pd.isna(adjusted_close):
                 adjusted_close = row.get("Close")
+                adjusted_close_status = "close_fallback"
             records.append(
                 {
                     "record_id": make_record_id("market", internal_symbol, observation_ts.isoformat()),
@@ -107,6 +109,7 @@ class YFinanceMarketProvider(DataProvider):
                     "low": row.get("Low"),
                     "close": row.get("Close"),
                     "adjusted_close": adjusted_close,
+                    "adjusted_close_status": adjusted_close_status,
                     "volume": row.get("Volume"),
                     "currency": "USD",
                     "quality_status": QualityStatus.valid,
@@ -140,3 +143,6 @@ class YFinanceMarketProvider(DataProvider):
 
     def normalize(self, observations):  # pragma: no cover - concrete normalization happens in pipeline helpers
         return observations
+
+
+MarketDataProvider = YFinanceMarketProvider

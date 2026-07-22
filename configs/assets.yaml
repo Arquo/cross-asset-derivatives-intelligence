@@ -61,6 +61,14 @@ assets:
       source_type: official
       stale_after_days: 45
       enabled: true
+    - series_id: CPILFESL
+      display_name: Core Consumer Price Index
+      category: macro
+      expected_frequency: monthly
+      expected_unit: index
+      source_type: official
+      stale_after_days: 45
+      enabled: true
     - series_id: UNRATE
       display_name: Unemployment Rate
       category: macro

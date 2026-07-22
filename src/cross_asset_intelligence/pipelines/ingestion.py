@@ -139,23 +139,27 @@ def normalize_market_fetch_result(result, config: PipelineConfig, pipeline_run_i
     frame["pipeline_run_id"] = pipeline_run_id
     frame["dataset_id"] = frame["symbol"].map(lambda symbol: f"market_{symbol.lower()}")
     frame["quality_flags"] = frame["quality_flags"].apply(lambda flags: flags if isinstance(flags, list) else [str(flags)] if flags else [])
+    if "adjusted_close_status" not in frame.columns:
+        frame["adjusted_close_status"] = "available"
     return frame[[
-        "record_id","dataset_id","symbol","provider_symbol","provider","source_type","observation_ts","available_ts","ingested_ts","open","high","low","close","adjusted_close","volume","currency","quality_status","quality_flags","pipeline_run_id"
+        "record_id","dataset_id","symbol","provider_symbol","provider","source_type","observation_ts","available_ts","ingested_ts","open","high","low","close","adjusted_close","adjusted_close_status","volume","currency","quality_status","quality_flags","pipeline_run_id"
     ]]
 
 
 def build_pipeline_run_row(
     provider_name: str,
     pipeline_run_id: str,
+    pipeline_name: str,
     status: str,
     requested_start_date: str,
     requested_end_date: str | None,
     datasets_requested: list[str],
-    rows_fetched: int,
-    rows_validated: int,
-    rows_rejected: int,
+    records_received: int,
+    records_validated: int,
+    records_rejected: int,
     warning_count: int,
     error_message: str | None,
+    raw_snapshot_location: str | None,
     started_at: pd.Timestamp,
     completed_at: pd.Timestamp,
 ) -> pd.DataFrame:
@@ -165,6 +169,7 @@ def build_pipeline_run_row(
         [
             {
                 "pipeline_run_id": pipeline_run_id,
+                "pipeline_name": pipeline_name,
                 "provider": provider_name,
                 "started_at": started_at,
                 "completed_at": completed_at,
@@ -172,11 +177,12 @@ def build_pipeline_run_row(
                 "requested_start_date": pd.Timestamp(requested_start_date).date(),
                 "requested_end_date": pd.Timestamp(requested_end_date).date() if requested_end_date else None,
                 "datasets_requested": ",".join(datasets_requested),
-                "rows_fetched": rows_fetched,
-                "rows_validated": rows_validated,
-                "rows_rejected": rows_rejected,
+                "records_received": records_received,
+                "records_validated": records_validated,
+                "records_rejected": records_rejected,
                 "warning_count": warning_count,
                 "error_message": error_message,
+                "raw_snapshot_location": raw_snapshot_location,
                 "created_at": completed_at,
             }
         ]
@@ -195,4 +201,3 @@ def fred_metadata_sidecar(series_result, pipeline_run_id: str, ingestion_date: s
         "ingestion_date": ingestion_date,
         "metadata": metadata,
     }
-

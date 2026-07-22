@@ -1,6 +1,8 @@
 # Data Dictionary
 
-## StandardObservation Fields
+## Canonical observation fields
+
+The project keeps a shared observation shape so provider output can be normalized before validation and storage.
 
 | Field | Meaning |
 | --- | --- |
@@ -8,117 +10,112 @@
 | dataset_id | Stable dataset identifier |
 | provider | Human-readable provider name |
 | source_type | SourceType enum value |
-| symbol | Canonical internal symbol |
-| provider_symbol | Original provider symbol |
-| asset_class | AssetClass enum value |
-| observation_ts | Time represented by the value |
-| available_ts | Earliest time the system could have known the value |
-| ingested_ts | Time the application retrieved or stored the value |
-| frequency | Frequency enum value |
-| timezone | Timezone label for the timestamps |
+| observation_ts | Economic or market observation timestamp |
+| available_ts | Earliest time the platform could have known the record |
+| ingested_ts | Time the platform retrieved or stored the record |
+| frequency | Observation frequency |
 | value | Observation value |
-| unit | Unit of measure |
-| is_adjusted | Whether the value was adjusted |
-| is_estimated | Whether the value is estimated |
-| is_revised | Whether the value is a revision |
 | quality_status | QualityStatus enum value |
-| quality_flags | Free-form quality notes or flags |
-| source_reference | Link or reference to the source record |
-| pipeline_run_id | Ingestion run identifier |
+| quality_flags | Free-form quality notes or rule flags |
 
-## New Tables
+## DuckDB tables
 
 ### pipeline_runs
 
-Stores provider-level run metadata, counts, and status.
+Pipeline-level metadata for each provider run.
+
+Key fields:
+
+- `pipeline_run_id`
+- `pipeline_name`
+- `provider`
+- `started_at`
+- `completed_at`
+- `requested_start_date`
+- `requested_end_date`
+- `status`
+- `records_received`
+- `records_validated`
+- `records_rejected`
+- `warning_count`
+- `error_message`
+- `raw_snapshot_location`
 
 ### macro_observations
 
-Validated FRED observations with stable logical keys based on `series_id + observation_ts`.
+Validated FRED observations stored at the `series_id + observation_ts` natural key.
 
-### market_prices
+### market_observations
 
-Validated daily market rows with stable logical keys based on `symbol + observation_ts`.
+Validated market rows stored at the `symbol + observation_ts` natural key.
+
+Key fields include:
+
+- `open`
+- `high`
+- `low`
+- `close`
+- `adjusted_close`
+- `adjusted_close_status`
+- `volume`
 
 ### data_quality_events
 
-Warnings and rejection events emitted by validation rules.
+Validation warnings and rejections with human-readable messages.
+
+Key fields:
+
+- `event_id`
+- `pipeline_run_id`
+- `dataset_id`
+- `record_id`
+- `severity`
+- `rule_id`
+- `message`
 
 ### dataset_catalog
 
-Current dataset metadata, freshness, and status summary.
+Freshness and status summary for each configured dataset.
 
-## Enums
+Key fields:
 
-### SourceType
+- `dataset_id`
+- `dataset_name`
+- `provider`
+- `expected_publication_delay_days`
+- `latest_observation_ts`
+- `latest_ingestion_ts`
+- `age_days`
+- `freshness_status`
+- `quality_status`
+- `record_count`
+- `latest_pipeline_status`
+- `warning_message`
 
-- official
-- vendor
-- calculated
-- estimated
-- manual
-
-### QualityStatus
-
-- valid
-- warning
-- stale
-- missing
-- rejected
-
-### Frequency
-
-- intraday
-- daily
-- weekly
-- monthly
-- quarterly
-
-### AssetClass
-
-- equity
-- etf
-- rate
-- future
-- option
-- macro
-- volatility
-- commodity
-- currency
-- credit
-
-### SignalDirection
-
-- bullish
-- bearish
-- neutral
-- mixed
-- unknown
-
-### ConfidenceLevel
-
-- low
-- medium
-- high
-
-## Timestamp Meaning
+## Timestamp meaning
 
 - `observation_ts` is the market or economic time represented by the value.
-- `available_ts` is the earliest time the value could have been known.
-- `ingested_ts` is when the application retrieved or stored the value.
+- `available_ts` is when the platform could have known the value.
+- `ingested_ts` is when the platform retrieved or stored the value.
 
-## Data-Quality Statuses
+## Freshness categories
 
-- `valid`: record is acceptable for analysis
-- `warning`: record is usable but has caveats
-- `stale`: data is old relative to the configured freshness window
-- `missing`: expected data is absent
-- `rejected`: data failed validation and should not be used
+- `Current`
+- `Delayed as expected`
+- `Stale`
+- `Missing`
+- `Failed`
 
-## Estimated-Data Labeling
+## Validation notes
 
-Estimated or proxy data must be clearly labeled with source type, quality flags, and documentation. Phase 1B uses `historical_data` and `yfinance_unofficial` flags for market data.
+- Missing required fields are rejected and flagged.
+- Duplicate symbol/date or series/date rows are rejected.
+- Stale rows are retained with warning flags when appropriate.
+- Large daily market moves produce warnings rather than automatic rejection.
 
-## Look-Ahead-Bias Protection
+## Raw storage
 
-The separation between observation time, availability time, and ingestion time prevents the application from treating a later-known value as if it were available earlier. Phase 1B uses `available_ts = ingested_ts` for FRED as a conservative current-state proxy and explicitly does not claim vintage-safe history.
+- Raw provider snapshots are saved as Parquet under `data/raw/fred/` and `data/raw/market/`.
+- Each run uses a unique pipeline-run subdirectory.
+- Raw snapshots are preserved even when later validation fails.
+

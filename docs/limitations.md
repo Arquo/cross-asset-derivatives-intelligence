@@ -1,10 +1,9 @@
 # Limitations
 
-- yfinance is unofficial and may change without notice.
-- Market data is historical or delayed and should not be treated as a real-time terminal feed.
-- FRED observation dates are not release timestamps.
-- Historical FRED records are not vintage-safe in Phase 1B.
-- No options, positioning, AI, or predictive models exist yet.
-- No market-microstructure conclusions can be drawn from daily OHLCV alone.
-- ETF volume is not verified fund flow.
-- The first product is end-of-day or delayed, not real time.
+- The platform is an end-of-day or delayed-data research system, not a real-time trading terminal.
+- yfinance is a replaceable research vendor source and may change without notice.
+- FRED observation timestamps are not release timestamps.
+- FRED history is used as current-state historical data, not vintage-safe release data.
+- No options analytics, gamma calculations, CFTC positioning, AI strategist, FastAPI, Docker, or trading workflow is implemented yet.
+- No claims should be made from the dashboard without checking the underlying raw data and validation flags.
+
