@@ -5,7 +5,7 @@ from typing import Callable
 
 import pandas as pd
 
-from src.data.fred_client import FREDSeriesMetadata, fetch_fred_observations, fetch_fred_series_metadata
+from data.fred_client import FREDSeriesMetadata, fetch_fred_observations, fetch_fred_series_metadata
 
 
 SERIES_IDS = [

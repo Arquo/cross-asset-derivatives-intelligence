@@ -1,0 +1,7 @@
+report_settings:
+  packet_version: phase-3
+  confidence_thresholds:
+    low: 33
+    medium: 67
+    high: 100
+  report_directory: data/reports

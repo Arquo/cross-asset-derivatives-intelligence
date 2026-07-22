@@ -110,3 +110,17 @@ def test_stale_data_uses_frequency_aware_thresholds():
     outcome = validate_macro_records(_macro_frame(observation_ts=old_timestamp, available_ts=old_timestamp, ingested_ts=old_timestamp, frequency="monthly"), {"monthly": 45})
     assert outcome.accepted.iloc[0]["quality_status"] == "warning"
     assert "stale_data" in outcome.accepted.iloc[0]["quality_flags"]
+
+
+def test_historical_market_rows_are_not_all_marked_stale():
+    recent = pd.Timestamp.now(tz="UTC") - pd.Timedelta(days=1)
+    frame = pd.concat(
+        [
+            _market_frame(observation_ts=pd.Timestamp("2020-01-02", tz="UTC")),
+            _market_frame(observation_ts=recent, available_ts=recent, ingested_ts=pd.Timestamp.now(tz="UTC")),
+        ],
+        ignore_index=True,
+    )
+    frame.loc[1, "record_id"] = "market-spy-latest"
+    outcome = validate_market_records(frame, {"daily": 3})
+    assert "stale_data" not in outcome.accepted.iloc[0]["quality_flags"]

@@ -1,30 +1,49 @@
-"""Market overview page."""
+"""Market overview backed by persisted market-intelligence outputs."""
 
 from __future__ import annotations
+
+import json
+import os
+from pathlib import Path
 
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from dashboard.components.cards import render_coming_soon_cards, render_metric_cards, render_status_badge
-from dashboard.components.layout import render_empty_state, render_page_header, render_section_heading, render_warning_panel
-from cross_asset_intelligence.services.market_data_service import calculate_daily_returns, normalize_performance
+from dashboard.components.empty_states import render_pipeline_empty_state
+from dashboard.components.layout import render_page_header, render_section_heading
+from cross_asset_intelligence.services.intelligence_service import MarketIntelligenceService
+from cross_asset_intelligence.services.market_data_service import normalize_performance
 
 
-def _latest_value(frame: pd.DataFrame, symbol: str, column: str = "adjusted_close"):
-    subset = frame[frame["symbol"] == symbol] if not frame.empty and "symbol" in frame.columns else pd.DataFrame()
-    if subset.empty:
-        return None, None
-    row = subset.sort_values("observation_ts").iloc[-1]
-    return row.get(column), row.get("observation_ts")
+DATABASE_PATH = Path(os.getenv("CROSS_ASSET_DATABASE_PATH", "data/database/cross_asset.duckdb"))
+MARKET_COMMAND = "python scripts/ingest_data.py --provider market"
+ANALYTICS_COMMAND = "python scripts/run_analytics.py"
 
 
-def _format_value(value: object) -> str:
-    if value is None or pd.isna(value):
-        return "Not available"
-    if isinstance(value, (int, float)):
-        return f"{value:,.2f}"
-    return str(value)
+@st.cache_data(ttl=600, show_spinner=False)
+def load_overview_intelligence(database_path: str) -> dict[str, pd.DataFrame]:
+    service = MarketIntelligenceService(Path(database_path))
+    return {
+        "screener": service.latest_screener(),
+        "liquidity": service.liquidity_history(),
+        "positioning": service.positioning_history(),
+        "options": service.latest_option_analytics(),
+        "summary": service.latest_summary(),
+        "market_attempt": service.latest_pipeline_attempt("yfinance"),
+        "analytics_runs": service.latest_runs(),
+    }
+
+
+def _timestamp(frame: pd.DataFrame, column: str) -> str:
+    if frame.empty or column not in frame.columns:
+        return "Unavailable"
+    value = pd.to_datetime(frame[column], utc=True, errors="coerce").max()
+    return "Unavailable" if pd.isna(value) else value.strftime("%Y-%m-%d %H:%M UTC")
+
+
+def _value(row: pd.Series | None, column: str, fallback: str = "Unavailable") -> str:
+    return fallback if row is None or pd.isna(row.get(column)) else str(row.get(column))
 
 
 def render(
@@ -40,133 +59,83 @@ def render(
 ) -> None:
     render_page_header(
         "Cross-Asset Derivatives Intelligence Platform",
-        "End-of-day cross-asset research platform",
-        badges=["Market Overview", "Phase 2"],
+        "Deterministic end-of-day market evidence across price, liquidity, positioning, options, credit, and rates.",
+        badges=["Market Overview", "Stored analytics"],
     )
-    st.caption(f"Latest successful refresh: {pd.Timestamp(latest_refresh_timestamp).strftime('%Y-%m-%d %H:%M UTC') if latest_refresh_timestamp is not None and pd.notna(latest_refresh_timestamp) else 'Not available'}")
-    render_status_badge(overall_health.get("status", "Missing"))
-
+    state = load_overview_intelligence(str(DATABASE_PATH))
     if latest_market.empty:
-        render_empty_state(
-            "No market data available yet",
-            "The dashboard is ready, but the local DuckDB database does not contain market observations yet.",
-            database_command,
+        render_pipeline_empty_state(
+            title="Daily market data is missing",
+            dataset="Configured cross-asset OHLCV universe",
+            command=MARKET_COMMAND,
+            latest_attempt=state["market_attempt"],
+        )
+        return
+
+    screener = state["screener"]
+    liquidity = state["liquidity"]
+    positioning = state["positioning"]
+    options = state["options"]
+    summary = state["summary"]
+    spy = screener[screener["symbol"] == "SPY"].iloc[0] if not screener.empty and not screener[screener["symbol"] == "SPY"].empty else None
+    spy_liquidity_rows = liquidity[liquidity["symbol"] == "SPY"] if not liquidity.empty else pd.DataFrame()
+    spy_liquidity = spy_liquidity_rows.sort_values("observation_ts").iloc[-1] if not spy_liquidity_rows.empty else None
+    summary_row = summary.iloc[0] if not summary.empty else None
+
+    top = st.columns(4)
+    top[0].metric("Latest market observation", _timestamp(latest_market, "latest_trading_date"))
+    top[1].metric("Latest CFTC report", _timestamp(positioning, "report_date"))
+    top[2].metric("Latest options snapshot", _timestamp(options, "quote_timestamp"))
+    health_label = overall_health.get("status", "missing").replace("_", " ").title()
+    top[3].metric("Overall data health", health_label)
+
+    primary = st.columns(5)
+    primary[0].metric("Market Pressure Score", f"{float(spy['market_pressure_score']):.1f}" if spy is not None and pd.notna(spy.get("market_pressure_score")) else "Unavailable")
+    primary[1].metric("Liquidity regime", _value(spy_liquidity, "liquidity_regime"))
+    primary[2].metric("Volatility regime", _value(spy, "volatility_classification"))
+    primary[3].metric("SPY options", _value(summary_row, "spy_options_condition"))
+    primary[4].metric("QQQ options", _value(summary_row, "qqq_options_condition"))
+    st.metric("Major positioning risk", _value(summary_row, "major_positioning_risk"))
+
+    if summary_row is None:
+        render_pipeline_empty_state(
+            title="The deterministic market setup has not run",
+            dataset="Screener, liquidity, positioning, options, and cross-module summary analytics",
+            command=ANALYTICS_COMMAND,
+            latest_attempt=state["analytics_runs"],
         )
     else:
-        market_lookup = {row.symbol: row for row in latest_market.itertuples(index=False)} if not latest_market.empty else {}
-        macro_lookup = {row.series_id: row for row in latest_macro.itertuples(index=False)} if not latest_macro.empty else {}
-        return_frame = calculate_daily_returns(market_history) if not market_history.empty else pd.DataFrame()
-        latest_return_lookup = {}
-        if not return_frame.empty:
-            latest_return_lookup = {
-                row.symbol: row.daily_return
-                for row in return_frame.sort_values("observation_ts").groupby("symbol", sort=False).tail(1).itertuples(index=False)
-            }
+        render_section_heading("Today's Market Setup", "Calculated statements with retained confirmations and contradictions.")
+        setup = json.loads(summary_row.get("market_setup") or "{}")
+        setup_columns = st.columns(2)
+        for index, title in enumerate(["Price action", "Liquidity", "Positioning", "Options", "Main confirmation", "Main contradiction", "Main risk"]):
+            setup_columns[index % 2].markdown(f"**{title}:** {setup.get(title, 'Unavailable')}")
+        st.caption(f"Summary confidence: {str(summary_row['confidence']).title()} | Generated: {_timestamp(summary, 'generated_timestamp')}")
 
-        def market_value_for(symbol: str, column: str = "adjusted_close"):
-            row = market_lookup.get(symbol)
-            if row is None:
-                return None
-            mapped_column = column
-            if column == "adjusted_close" and hasattr(row, "latest_adjusted_close"):
-                mapped_column = "latest_adjusted_close"
-            elif column == "close" and hasattr(row, "latest_close"):
-                mapped_column = "latest_close"
-            return getattr(row, mapped_column, None)
+    render_section_heading("Cross-asset performance", "Stored adjusted-close history normalized to 100 at the first observation.")
+    performance = normalize_performance(market_history) if not market_history.empty else pd.DataFrame()
+    fig = go.Figure()
+    for symbol in ["SPY", "QQQ", "IWM", "TLT", "HYG", "GLD", "USO", "UUP", "SMH", "XLF", "XLE", "XLK"]:
+        subset = performance[performance["symbol"] == symbol] if not performance.empty else pd.DataFrame()
+        if not subset.empty:
+            fig.add_trace(go.Scatter(x=subset["observation_ts"], y=subset["normalized_value"], mode="lines", name=symbol))
+    fig.update_layout(height=390, yaxis_title="Normalized value", xaxis_title="Observation date")
+    st.plotly_chart(fig, use_container_width=True)
 
-        def macro_value_for(series_id: str):
-            row = macro_lookup.get(series_id)
-            return getattr(row, "latest_value", None) if row else None
+    table_col, macro_col = st.columns([1.5, 1])
+    with table_col:
+        render_section_heading("Latest market pressure")
+        if not screener.empty:
+            st.dataframe(
+                screener[["symbol", "market_pressure_score", "pressure_label", "trend_classification", "liquidity_classification", "freshness_status"]],
+                use_container_width=True,
+                hide_index=True,
+            )
+    with macro_col:
+        render_section_heading("Credit and rates context")
+        macro_lookup = latest_macro.set_index("series_id") if not latest_macro.empty else pd.DataFrame()
+        for series_id, label in [("DGS10", "10Y Treasury"), ("DGS2", "2Y Treasury"), ("T10Y2Y", "10Y-2Y spread"), ("BAMLH0A0HYM2", "High-yield OAS")]:
+            value = macro_lookup.loc[series_id, "latest_value"] if not macro_lookup.empty and series_id in macro_lookup.index else None
+            st.metric(label, f"{float(value):.2f}" if value is not None and pd.notna(value) else "Unavailable")
 
-        def pct_change(symbol: str) -> str:
-            value = latest_return_lookup.get(symbol)
-            if value is None or pd.isna(value):
-                return "Not available"
-            return f"{value:.2f}%"
-
-        metrics = [
-            {"label": "SPY latest close", "value": _format_value(market_value_for("SPY"))},
-            {"label": "SPY daily return", "value": pct_change("SPY")},
-            {"label": "QQQ latest close", "value": _format_value(market_value_for("QQQ"))},
-            {"label": "QQQ daily return", "value": pct_change("QQQ")},
-            {"label": "VIX latest close", "value": _format_value(market_value_for("VIX"))},
-            {"label": "10Y Treasury yield", "value": _format_value(macro_value_for("DGS10"))},
-            {"label": "2Y Treasury yield", "value": _format_value(macro_value_for("DGS2"))},
-            {"label": "10Y-2Y spread", "value": _format_value(macro_value_for("T10Y2Y"))},
-        ]
-        render_metric_cards(metrics)
-
-    render_section_heading("What the dashboard currently does", "Phase 2 is an ingestion, validation, storage, and descriptive monitoring layer.")
-    st.markdown(
-        """
-        - It ingests official FRED series and delayed daily market data.
-        - It stores raw snapshots and validated observations locally in DuckDB.
-        - It reports freshness and pipeline status.
-        - It does not produce regime calls, trade recommendations, or AI summaries yet.
-        """,
-    )
-
-    st.divider()
-    render_section_heading("Market charts", "Prepared from stored daily observations.")
-
-    perf_frame = normalize_performance(market_history) if not market_history.empty else market_history
-    ret_frame = calculate_daily_returns(market_history) if not market_history.empty else market_history
-
-    chart_col1, chart_col2 = st.columns(2)
-    with chart_col1:
-        if perf_frame.empty:
-            render_empty_state("Normalized performance", "No stored market history yet.")
-        else:
-            fig = go.Figure()
-            for symbol in ["SPY", "QQQ", "IWM", "TLT", "HYG", "GLD", "USO"]:
-                subset = perf_frame[perf_frame["symbol"] == symbol]
-                if subset.empty:
-                    continue
-                fig.add_trace(go.Scatter(x=subset["observation_ts"], y=subset["normalized_value"], mode="lines", name=symbol))
-            fig.update_layout(title="Normalized performance", xaxis_title="Date", yaxis_title="Index (start = 100)", height=360)
-            st.plotly_chart(fig, use_container_width=True)
-    with chart_col2:
-        if yield_history.empty:
-            render_empty_state("Treasury yields", "No yield observations stored yet.")
-        else:
-            fig = go.Figure()
-            for symbol in ["DGS2", "DGS10"]:
-                subset = yield_history[yield_history["series_id"] == symbol]
-                if subset.empty:
-                    continue
-                fig.add_trace(go.Scatter(x=subset["observation_ts"], y=subset["value"], mode="lines", name=symbol))
-            fig.update_layout(title="Recent Treasury yields", xaxis_title="Date", yaxis_title="Yield", height=360)
-            st.plotly_chart(fig, use_container_width=True)
-
-    chart_col1, chart_col2 = st.columns(2)
-    with chart_col1:
-        if ret_frame.empty:
-            render_empty_state("Daily returns", "No market history available for return comparison.")
-        else:
-            fig = go.Figure()
-            for symbol in ["SPY", "QQQ", "IWM", "TLT", "HYG", "GLD", "USO"]:
-                subset = ret_frame[ret_frame["symbol"] == symbol]
-                if subset.empty:
-                    continue
-                fig.add_trace(go.Scatter(x=subset["observation_ts"], y=subset["daily_return"], mode="lines", name=symbol))
-            fig.update_layout(title="Cross-asset daily-return comparison", xaxis_title="Date", yaxis_title="Daily return (%)", height=360)
-            st.plotly_chart(fig, use_container_width=True)
-    with chart_col2:
-        if vix_history.empty:
-            render_empty_state("Volatility panel", "No VIX observations stored yet.")
-        else:
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(x=vix_history["observation_ts"], y=vix_history["adjusted_close"], mode="lines", name="VIX"))
-            fig.update_layout(title="Recent volatility panel", xaxis_title="Date", yaxis_title="VIX", height=360)
-            st.plotly_chart(fig, use_container_width=True)
-
-    render_section_heading("Coming later", "These modules are intentionally shown as future work.")
-    render_coming_soon_cards(
-        [
-            {"title": "Positioning", "description": "Coming later. CFTC positioning and futures open-interest analytics are not part of Phase 2."},
-            {"title": "Options", "description": "Coming later. Options chains, gamma, skew, and volatility surfaces are not yet implemented."},
-            {"title": "Market Structure", "description": "Coming later. Microstructure and market-depth analysis will be added in a future phase."},
-            {"title": "Liquidity", "description": "Coming later. Liquidity analytics will expand beyond basic reserve and balance-sheet proxies."},
-            {"title": "Cross-Asset", "description": "Coming later. Relative-value and cross-market relationship analysis will be added later."},
-        ]
-    )
+    st.caption("All displayed market and options vendor data are research-grade and delayed. Observation timestamps are distinct from ingestion and calculation timestamps.")

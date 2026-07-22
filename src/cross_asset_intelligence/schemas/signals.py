@@ -25,7 +25,7 @@ class SignalRecord(BaseModel):
     normalized_value: Any
     score: float = Field(ge=-1.0, le=1.0)
     direction: SignalDirection
-    strength: float | None = None
+    strength: float | str | None = None
     interpretation: str
     confidence: ConfidenceLevel
     freshness: str

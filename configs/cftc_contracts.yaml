@@ -1,0 +1,151 @@
+contracts:
+  - internal_asset_id: sp500
+    display_name: S&P 500
+    cftc_contract_market_code: "13874+"
+    official_contract_name: S&P 500 Consolidated
+    report_type: tff
+    exchange: CHICAGO MERCANTILE EXCHANGE
+    asset_class: equity_index
+    contract_unit: USD per index point
+    preferred_participant_categories:
+      - Dealer or intermediary
+      - Asset manager or institutional
+      - Leveraged funds
+      - Other reportables
+      - Nonreportable positions
+    active: true
+  - internal_asset_id: nasdaq
+    display_name: Nasdaq
+    cftc_contract_market_code: "20974+"
+    official_contract_name: NASDAQ-100 Consolidated
+    report_type: tff
+    exchange: CHICAGO MERCANTILE EXCHANGE
+    asset_class: equity_index
+    contract_unit: USD per index point
+    preferred_participant_categories:
+      - Dealer or intermediary
+      - Asset manager or institutional
+      - Leveraged funds
+      - Other reportables
+      - Nonreportable positions
+    active: true
+  - internal_asset_id: russell_2000
+    display_name: Russell 2000 E-mini
+    cftc_contract_market_code: "239742"
+    official_contract_name: RUSSELL E-MINI
+    report_type: tff
+    exchange: CHICAGO MERCANTILE EXCHANGE
+    asset_class: equity_index
+    contract_unit: USD per index point
+    preferred_participant_categories:
+      - Dealer or intermediary
+      - Asset manager or institutional
+      - Leveraged funds
+      - Other reportable
+      - Non-reportable
+    active: true
+  - internal_asset_id: us_2y
+    display_name: U.S. 2-Year Treasury Futures
+    cftc_contract_market_code: "042601"
+    official_contract_name: UST 2Y NOTE
+    report_type: tff
+    exchange: CHICAGO BOARD OF TRADE
+    asset_class: rates
+    contract_unit: USD per contract
+    preferred_participant_categories:
+      - Dealer or intermediary
+      - Asset manager or institutional
+      - Leveraged funds
+      - Other reportables
+      - Nonreportable positions
+    active: true
+  - internal_asset_id: us_5y
+    display_name: U.S. 5-Year Treasury Futures
+    cftc_contract_market_code: "044601"
+    official_contract_name: UST 5Y NOTE
+    report_type: tff
+    exchange: CHICAGO BOARD OF TRADE
+    asset_class: rates
+    contract_unit: USD per contract
+    preferred_participant_categories:
+      - Dealer or intermediary
+      - Asset manager or institutional
+      - Leveraged funds
+      - Other reportables
+      - Nonreportable positions
+    active: true
+  - internal_asset_id: us_10y
+    display_name: U.S. 10-Year Treasury Futures
+    cftc_contract_market_code: "043602"
+    official_contract_name: UST 10Y NOTE
+    report_type: tff
+    exchange: CHICAGO BOARD OF TRADE
+    asset_class: rates
+    contract_unit: USD per contract
+    preferred_participant_categories:
+      - Dealer or intermediary
+      - Asset manager or institutional
+      - Leveraged funds
+      - Other reportables
+      - Nonreportable positions
+    active: true
+  - internal_asset_id: us_long_bond
+    display_name: U.S. Long-Bond Futures
+    cftc_contract_market_code: "020601"
+    official_contract_name: UST BOND
+    report_type: tff
+    exchange: CHICAGO BOARD OF TRADE
+    asset_class: rates
+    contract_unit: USD per contract
+    preferred_participant_categories:
+      - Dealer or intermediary
+      - Asset manager or institutional
+      - Leveraged funds
+      - Other reportables
+      - Nonreportable positions
+    active: true
+  - internal_asset_id: dxy
+    display_name: U.S. Dollar Index Futures
+    cftc_contract_market_code: "098662"
+    official_contract_name: USD INDEX
+    report_type: tff
+    exchange: ICE FUTURES U.S.
+    asset_class: currency
+    contract_unit: USD per contract
+    preferred_participant_categories:
+      - Dealer or intermediary
+      - Asset manager or institutional
+      - Leveraged funds
+      - Other reportables
+      - Nonreportable positions
+    active: true
+  - internal_asset_id: gold
+    display_name: Gold Futures
+    cftc_contract_market_code: "088691"
+    official_contract_name: GOLD
+    report_type: disaggregated
+    exchange: COMMODITY EXCHANGE INC.
+    asset_class: commodity
+    contract_unit: USD per troy ounce
+    preferred_participant_categories:
+      - Dealer or intermediary
+      - Asset manager or institutional
+      - Leveraged funds
+      - Other reportables
+      - Nonreportable positions
+    active: true
+  - internal_asset_id: crude_oil
+    display_name: Crude Oil Futures
+    cftc_contract_market_code: "067651"
+    official_contract_name: WTI-PHYSICAL
+    report_type: disaggregated
+    exchange: NEW YORK MERCANTILE EXCHANGE
+    asset_class: commodity
+    contract_unit: USD per barrel
+    preferred_participant_categories:
+      - Dealer or intermediary
+      - Asset manager or institutional
+      - Leveraged funds
+      - Other reportables
+      - Nonreportable positions
+    active: true

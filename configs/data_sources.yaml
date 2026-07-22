@@ -1,6 +1,6 @@
 providers:
   - provider_name: FRED
-    implementation_status: planned
+    implementation_status: working
     data_category: macro_and_rates
     expected_frequency: mixed
     source_type: official
@@ -9,7 +9,7 @@ providers:
     timeout: 30
     retry_count: 3
   - provider_name: CFTC
-    implementation_status: planned
+    implementation_status: working
     data_category: positioning
     expected_frequency: weekly
     source_type: official
@@ -18,20 +18,20 @@ providers:
     timeout: 30
     retry_count: 3
   - provider_name: replaceable market-data provider
-    implementation_status: planned
+    implementation_status: working
     data_category: market
     expected_frequency: daily
     source_type: vendor
     delayed: true
-    requires_credentials: true
+    requires_credentials: false
     timeout: 30
     retry_count: 2
   - provider_name: replaceable options provider
-    implementation_status: planned
+    implementation_status: working
     data_category: options
     expected_frequency: intraday
     source_type: vendor
     delayed: true
-    requires_credentials: true
+    requires_credentials: false
     timeout: 30
     retry_count: 2

@@ -1,0 +1,305 @@
+indicators:
+  - indicator_id: cpi_yoy
+    display_name: CPI YoY Inflation
+    module: macro
+    description: Year-over-year CPI inflation.
+    formula: (latest / value_12_months_ago - 1) * 100
+    required_datasets: [fred_cpiaucsl]
+    frequency: monthly
+    lookback_period: 12
+    minimum_observations: 13
+    unit: percent
+    normal_range: [1.5, 3.5]
+    warning_threshold: 4.0
+    extreme_threshold: 6.0
+    bullish_interpretation: Inflation is contained.
+    bearish_interpretation: Inflation is elevated.
+    limitations: [Monthly, current vintage only]
+    failure_cases: [Insufficient history, zero denominator]
+    freshness_requirement: monthly
+    directional_bias: context-dependent
+  - indicator_id: cpi_3m_annualized
+    display_name: CPI 3M Annualized Inflation
+    module: macro
+    description: Three-month annualized CPI inflation.
+    formula: ((latest / value_3_months_ago) ** 4 - 1) * 100
+    required_datasets: [fred_cpiaucsl]
+    frequency: monthly
+    lookback_period: 3
+    minimum_observations: 4
+    unit: percent
+    normal_range: [1.5, 4.0]
+    warning_threshold: 5.0
+    extreme_threshold: 7.0
+    bullish_interpretation: Inflation is moderating.
+    bearish_interpretation: Inflation is reaccelerating.
+    limitations: [Monthly, current vintage only]
+    failure_cases: [Insufficient history, non-positive denominator]
+    freshness_requirement: monthly
+    directional_bias: context-dependent
+  - indicator_id: unemployment_change_3m
+    display_name: Unemployment Change 3M
+    module: macro
+    description: Three-month change in the unemployment rate.
+    formula: latest - value_3_months_ago
+    required_datasets: [fred_unrate]
+    frequency: monthly
+    lookback_period: 3
+    minimum_observations: 4
+    unit: percentage points
+    normal_range: [-0.1, 0.1]
+    warning_threshold: 0.3
+    extreme_threshold: 0.6
+    bullish_interpretation: Labour market is strengthening.
+    bearish_interpretation: Labour market is weakening.
+    limitations: [Monthly, current vintage only]
+    failure_cases: [Insufficient history]
+    freshness_requirement: monthly
+    directional_bias: higher is bearish
+  - indicator_id: policy_change_3m
+    display_name: Fed Funds Change 3M
+    module: macro
+    description: Three-month change in the effective federal-funds rate.
+    formula: latest - value_3_months_ago
+    required_datasets: [fred_dff]
+    frequency: daily
+    lookback_period: 63
+    minimum_observations: 4
+    unit: percentage points
+    normal_range: [-0.25, 0.25]
+    warning_threshold: 0.5
+    extreme_threshold: 1.0
+    bullish_interpretation: Policy is easier.
+    bearish_interpretation: Policy is tighter.
+    limitations: [Daily proxy, current vintage only]
+    failure_cases: [Insufficient history]
+    freshness_requirement: daily
+    directional_bias: higher is bearish
+  - indicator_id: yield_curve_slope
+    display_name: 10Y-2Y Yield Curve Slope
+    module: macro
+    description: Difference between the 10-year and 2-year Treasury yield.
+    formula: dgs10 - dgs2
+    required_datasets: [fred_dgs2, fred_dgs10]
+    frequency: daily
+    lookback_period: 1
+    minimum_observations: 1
+    unit: percentage points
+    normal_range: [0.0, 1.5]
+    warning_threshold: -0.25
+    extreme_threshold: -0.75
+    bullish_interpretation: Curve is positively sloped.
+    bearish_interpretation: Curve is inverted.
+    limitations: [Current vintage only]
+    failure_cases: [Missing yield data]
+    freshness_requirement: daily
+    directional_bias: context-dependent
+  - indicator_id: two_year_change_5d
+    display_name: 2Y Yield Change 5D
+    module: macro
+    description: Five trading day change in the 2-year Treasury yield.
+    formula: latest - value_5_days_ago
+    required_datasets: [fred_dgs2]
+    frequency: daily
+    lookback_period: 5
+    minimum_observations: 6
+    unit: percentage points
+    normal_range: [-0.2, 0.2]
+    warning_threshold: 0.35
+    extreme_threshold: 0.75
+    bullish_interpretation: Yields are falling.
+    bearish_interpretation: Yields are rising.
+    limitations: [Daily proxy]
+    failure_cases: [Insufficient history]
+    freshness_requirement: daily
+    directional_bias: higher is bearish
+  - indicator_id: ten_year_change_20d
+    display_name: 10Y Yield Change 20D
+    module: macro
+    description: Twenty trading day change in the 10-year Treasury yield.
+    formula: latest - value_20_days_ago
+    required_datasets: [fred_dgs10]
+    frequency: daily
+    lookback_period: 20
+    minimum_observations: 21
+    unit: percentage points
+    normal_range: [-0.3, 0.3]
+    warning_threshold: 0.6
+    extreme_threshold: 1.0
+    bullish_interpretation: Long yields are easing.
+    bearish_interpretation: Long yields are rising.
+    limitations: [Daily proxy]
+    failure_cases: [Insufficient history]
+    freshness_requirement: daily
+    directional_bias: higher is bearish
+  - indicator_id: real_yield_change_20d
+    display_name: 10Y Real Yield Change 20D
+    module: macro
+    description: Twenty trading day change in the 10-year real yield.
+    formula: latest - value_20_days_ago
+    required_datasets: [fred_dfii10]
+    frequency: daily
+    lookback_period: 20
+    minimum_observations: 21
+    unit: percentage points
+    normal_range: [-0.3, 0.3]
+    warning_threshold: 0.5
+    extreme_threshold: 0.9
+    bullish_interpretation: Real yields are falling.
+    bearish_interpretation: Real yields are rising.
+    limitations: [Daily proxy]
+    failure_cases: [Insufficient history]
+    freshness_requirement: daily
+    directional_bias: higher is bearish
+  - indicator_id: hy_spread_change
+    display_name: High-Yield Spread Change
+    module: macro
+    description: Change in ICE BofA high-yield OAS.
+    formula: latest - value_20_days_ago
+    required_datasets: [fred_bamlh0a0hym2]
+    frequency: daily
+    lookback_period: 20
+    minimum_observations: 21
+    unit: percentage points
+    normal_range: [-0.5, 0.5]
+    warning_threshold: 0.75
+    extreme_threshold: 1.25
+    bullish_interpretation: Credit stress is easing.
+    bearish_interpretation: Credit stress is rising.
+    limitations: [Daily proxy]
+    failure_cases: [Insufficient history]
+    freshness_requirement: daily
+    directional_bias: higher is bearish
+  - indicator_id: walcl_trend
+    display_name: Fed Assets Trend
+    module: macro
+    description: Trend in Federal Reserve total assets.
+    formula: rolling slope over 20 observations
+    required_datasets: [fred_walcl]
+    frequency: weekly
+    lookback_period: 20
+    minimum_observations: 20
+    unit: billions_usd
+    normal_range: [-50, 50]
+    warning_threshold: -100
+    extreme_threshold: -150
+    bullish_interpretation: Liquidity is expanding.
+    bearish_interpretation: Liquidity is contracting.
+    limitations: [Weekly proxy]
+    failure_cases: [Insufficient history]
+    freshness_requirement: weekly
+    directional_bias: context-dependent
+  - indicator_id: rrp_trend
+    display_name: Reverse Repo Trend
+    module: macro
+    description: Trend in reverse repo usage.
+    formula: rolling slope over 20 observations
+    required_datasets: [fred_rrpontsyd]
+    frequency: daily
+    lookback_period: 20
+    minimum_observations: 20
+    unit: billions_usd
+    normal_range: [-50, 50]
+    warning_threshold: 100
+    extreme_threshold: 150
+    bullish_interpretation: Liquidity is expanding.
+    bearish_interpretation: Liquidity is contracting.
+    limitations: [Daily proxy]
+    failure_cases: [Insufficient history]
+    freshness_requirement: daily
+    directional_bias: higher is bearish
+  - indicator_id: tga_trend
+    display_name: Treasury General Account Trend
+    module: macro
+    description: Trend in Treasury General Account balances.
+    formula: rolling slope over 20 observations
+    required_datasets: [fred_wtregen]
+    frequency: weekly
+    lookback_period: 20
+    minimum_observations: 20
+    unit: billions_usd
+    normal_range: [-50, 50]
+    warning_threshold: 100
+    extreme_threshold: 150
+    bullish_interpretation: Liquidity is expanding.
+    bearish_interpretation: Liquidity is contracting.
+    limitations: [Weekly proxy]
+    failure_cases: [Insufficient history]
+    freshness_requirement: weekly
+    directional_bias: higher is bearish
+  - indicator_id: liquidity_proxy
+    display_name: System Liquidity Proxy
+    module: liquidity
+    description: Transparent composite liquidity proxy.
+    formula: weighted combination of Fed assets, reverse repo, TGA, reserves, and credit stress
+    required_datasets: [fred_walcl, fred_rrponTsyD, fred_wtregen, fred_wresbal, fred_bamlh0a0hym2]
+    frequency: daily
+    lookback_period: 20
+    minimum_observations: 10
+    unit: normalized score
+    normal_range: [-1.0, 1.0]
+    warning_threshold: -0.5
+    extreme_threshold: -0.8
+    bullish_interpretation: Liquidity is improving.
+    bearish_interpretation: Liquidity is contracting.
+    limitations: [Proxy, mixed frequencies]
+    failure_cases: [Missing components]
+    freshness_requirement: daily
+    directional_bias: higher is bullish
+  - indicator_id: spy_tlt_corr_20d
+    display_name: SPY-TLT 20D Correlation
+    module: cross_asset
+    description: Twenty day rolling correlation between SPY and TLT.
+    formula: rolling correlation of daily returns
+    required_datasets: [market_spy, market_tlt]
+    frequency: daily
+    lookback_period: 20
+    minimum_observations: 20
+    unit: correlation
+    normal_range: [-1.0, 1.0]
+    warning_threshold: 0.2
+    extreme_threshold: 0.6
+    bullish_interpretation: Correlation is stable.
+    bearish_interpretation: Correlation is unstable.
+    limitations: [Daily proxy]
+    failure_cases: [Insufficient overlap]
+    freshness_requirement: daily
+    directional_bias: context-dependent
+  - indicator_id: spy_vix_corr_20d
+    display_name: SPY-VIX 20D Correlation
+    module: cross_asset
+    description: Twenty day rolling correlation between SPY and VIX.
+    formula: rolling correlation of daily returns
+    required_datasets: [market_spy, market_vix]
+    frequency: daily
+    lookback_period: 20
+    minimum_observations: 20
+    unit: correlation
+    normal_range: [-1.0, 1.0]
+    warning_threshold: 0.2
+    extreme_threshold: 0.6
+    bullish_interpretation: Volatility relationship is stable.
+    bearish_interpretation: Volatility relationship is unstable.
+    limitations: [Daily proxy]
+    failure_cases: [Insufficient overlap]
+    freshness_requirement: daily
+    directional_bias: context-dependent
+  - indicator_id: cftc_crowding_score
+    display_name: CFTC Crowding Score
+    module: positioning
+    description: Normalized positioning crowding metric.
+    formula: percentile and z-score blend of net positioning
+    required_datasets: [cftc_positioning_observations]
+    frequency: weekly
+    lookback_period: 156
+    minimum_observations: 26
+    unit: normalized score
+    normal_range: [-0.5, 0.5]
+    warning_threshold: 0.65
+    extreme_threshold: 0.85
+    bullish_interpretation: Positioning is supportive.
+    bearish_interpretation: Positioning is crowded.
+    limitations: [Weekly, delayed]
+    failure_cases: [Insufficient history]
+    freshness_requirement: weekly
+    directional_bias: context-dependent

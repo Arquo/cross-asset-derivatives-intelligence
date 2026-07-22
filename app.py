@@ -1,21 +1,28 @@
 from __future__ import annotations
 
 from pathlib import Path
+import os
 
 import pandas as pd
 import streamlit as st
 
 from dashboard.components.styles import inject_dashboard_styles
 from dashboard.pages.data_freshness import render as render_data_freshness
-from dashboard.pages.macro_snapshot import render as render_macro_snapshot
+from dashboard.pages.liquidity import render as render_liquidity
+from dashboard.pages.macro_regime import render as render_macro_regime
 from dashboard.pages.market_overview import render as render_market_overview
+from dashboard.pages.market_summary import render as render_market_summary
+from dashboard.pages.positioning import render as render_positioning
 from dashboard.pages.methodology import render as render_methodology
+from dashboard.pages.options import render as render_options
+from dashboard.pages.screener import render as render_screener
 from cross_asset_intelligence.core.config import load_pipeline_config
 from cross_asset_intelligence.services.data_status_service import DataStatusService
 from cross_asset_intelligence.services.market_data_service import MarketDataService
+from cross_asset_intelligence.services.intelligence_service import MarketIntelligenceService
 
 
-DATABASE_PATH = Path("data/database/cross_asset.duckdb")
+DATABASE_PATH = Path(os.getenv("CROSS_ASSET_DATABASE_PATH", "data/database/cross_asset.duckdb"))
 INGEST_COMMAND = "python scripts/ingest_data.py --provider all"
 INIT_COMMAND = "python scripts/initialize_database.py"
 
@@ -29,7 +36,7 @@ st.set_page_config(
 inject_dashboard_styles()
 
 
-@st.cache_data(ttl=21600, show_spinner=False)
+@st.cache_data(ttl=3600, show_spinner=False)
 def load_configuration() -> dict[str, object]:
     config = load_pipeline_config(Path.cwd())
     return {
@@ -38,7 +45,7 @@ def load_configuration() -> dict[str, object]:
     }
 
 
-@st.cache_data(ttl=21600, show_spinner=False)
+@st.cache_data(ttl=600, show_spinner=False)
 def load_dashboard_state(database_path: str) -> dict[str, object]:
     path = Path(database_path)
     status_service = DataStatusService(path)
@@ -82,14 +89,6 @@ def _render_home(state: dict[str, object]) -> None:
     )
 
 
-def _render_macro(state: dict[str, object]) -> None:
-    render_macro_snapshot(
-        macro_latest=state["latest_macro"],
-        macro_history=state["macro_history"],
-        database_command=INGEST_COMMAND,
-    )
-
-
 def _render_freshness(state: dict[str, object]) -> None:
     render_data_freshness(
         freshness_summary=state["summary"].freshness_summary,
@@ -105,7 +104,12 @@ def _render_methodology(state: dict[str, object]) -> None:
 
 PAGES = {
     "Market Overview": _render_home,
-    "Macro Snapshot": _render_macro,
+    "Macro Regime": lambda _state: render_macro_regime(),
+    "Positioning": lambda _state: render_positioning(),
+    "Liquidity & Market-Structure Proxies": lambda _state: render_liquidity(),
+    "Cross-Asset Screener": lambda _state: render_screener(),
+    "SPY & QQQ Options": lambda _state: render_options(),
+    "Evidence-Based Market Summary": lambda _state: render_market_summary(),
     "Data Freshness": _render_freshness,
     "Methodology": _render_methodology,
 }
@@ -113,18 +117,17 @@ PAGES = {
 
 st.sidebar.title("Navigation")
 selected_page = st.sidebar.radio("Go to", list(PAGES.keys()), index=0)
-st.sidebar.markdown(
-    """
-    ### Coming later
-    - Positioning
-    - Options
-    - Market Structure
-    - Liquidity
-    - Cross-Asset
-    - AI Strategist
-    """,
-)
-st.sidebar.caption("Future modules remain visible as planned work, not as finished features.")
+if st.sidebar.button("Analyze Today's Market", help="Recalculate analytics from observations already stored in DuckDB."):
+    try:
+        with st.spinner("Calculating and storing deterministic analytics..."):
+            MarketIntelligenceService(DATABASE_PATH).run()
+        st.cache_data.clear()
+        st.sidebar.success("Stored analytics updated.")
+        st.rerun()
+    except Exception as exc:
+        st.sidebar.error(f"Analytics failed: {exc}")
+        st.sidebar.code("python scripts/run_analytics.py")
+st.sidebar.caption("Data retrieval remains explicit through the ingestion commands; this button only analyzes stored observations.")
 
 state = load_dashboard_state(str(DATABASE_PATH))
 

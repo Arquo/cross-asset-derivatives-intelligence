@@ -59,6 +59,42 @@ Key fields include:
 - `adjusted_close_status`
 - `volume`
 
+### cftc_positioning_observations
+
+Official weekly CFTC records at contract, report date, report type, and participant-category grain. Separate fields retain report, publication/availability, and ingestion timestamps.
+
+### option_contract_snapshots
+
+Immutable option-chain contracts at snapshot and contract-symbol grain. Important fields include `snapshot_id`, `symbol`, `underlying_price`, `quote_timestamp`, `expiration`, `strike`, `option_type`, bid/ask/last, implied volatility, volume, open interest, in-the-money status, source label, and raw snapshot location.
+
+### screener_results
+
+Latest per-asset screener metrics, classifications, Market Pressure Score, freshness, serialized component audit trail, and missing components. Natural key: `symbol + observation_ts`.
+
+### market_pressure_scores
+
+Persisted -100 to +100 descriptive scores with label, confidence, base/effective component weights, contributions, missing components, and available coverage weight.
+
+### liquidity_analytics
+
+Daily per-asset liquidity proxy history. Stores dollar/relative volume, realized volatility, intraday range, ATR, Amihud level/percentile, volume shock, price impact, drawdown, HYG/VIX stress, composite score/regime, confidence, contributions, and missing inputs.
+
+### positioning_analytics
+
+Per-contract/category/report-date CFTC calculations: gross/net exposure, changes, net/open-interest, percentiles, z-score, reversal, crowding, divergence, liquidation/squeeze flags, confidence, and source reference.
+
+### option_analytics
+
+Per snapshot, expiration, and gamma-assumption summary. Stores general chain totals, volatility comparisons, expected move, 25-delta skew, OI structure, Estimated Gamma Exposure, gamma-flip/sensitivity, deterministic condition evidence, assumptions, confidence, and limitations.
+
+### cross_module_summaries
+
+One deterministic market-setup payload per analytics data cutoff, including market-pressure/liquidity/volatility conditions, positioning risk, SPY/QQQ options conditions, confirmation/contradiction lists, limitations, five monitor indicators, confidence, and source timestamps.
+
+### analytics_runs
+
+Execution metadata for persisted calculation runs, including requested modules, calculated row counts, warnings, missing/stale datasets, status, and data cutoff.
+
 ### data_quality_events
 
 Validation warnings and rejections with human-readable messages.
@@ -115,7 +151,8 @@ Key fields:
 
 ## Raw storage
 
-- Raw provider snapshots are saved as Parquet under `data/raw/fred/` and `data/raw/market/`.
+- Raw provider snapshots are saved under `data/raw/fred/`, `data/raw/market/`, `data/raw/cftc/`, and `data/raw/options/`.
 - Each run uses a unique pipeline-run subdirectory.
-- Raw snapshots are preserved even when later validation fails.
+- Option snapshots use an immutable symbol/snapshot-ID path and are never overwritten by later retrievals.
+- Raw snapshots are preserved even when later validation or analytics fail.
 

@@ -174,10 +174,12 @@ def validate_market_records(frame: pd.DataFrame, stale_thresholds: dict[str, int
     working = _normalize_frame(frame)
     seen_keys: set[tuple[str | None, pd.Timestamp | None]] = set()
     last_adjusted_close: dict[str, float] = {}
+    latest_observation_by_symbol = working.groupby("symbol", dropna=False)["observation_ts"].max().to_dict()
 
     for _, row in working.iterrows():
         record = row.to_dict()
         flags = list(record.get("quality_flags", [])) if isinstance(record.get("quality_flags"), list) else []
+        validation_flags: list[str] = []
         dataset_id = str(record.get("dataset_id", ""))
         record_id = record.get("record_id")
         rejected = False
@@ -256,10 +258,11 @@ def validate_market_records(frame: pd.DataFrame, stale_thresholds: dict[str, int
             events.append(ValidationEvent(dataset_id, record_id, "error", "observation_after_ingestion", "Observation timestamp cannot be after ingestion timestamp."))
 
         threshold = _frequency_threshold(str(record.get("frequency", "daily")).lower(), stale_thresholds)
-        if threshold is not None and pd.notna(observation_ts):
+        if threshold is not None and pd.notna(observation_ts) and observation_ts == latest_observation_by_symbol.get(symbol):
             age_days = (_utc_now() - observation_ts).days
             if age_days > threshold:
                 flags.append("stale_data")
+                validation_flags.append("stale_data")
 
         if pd.notna(adjusted_close) and symbol:
             last_value = last_adjusted_close.get(str(symbol))
@@ -267,6 +270,7 @@ def validate_market_records(frame: pd.DataFrame, stale_thresholds: dict[str, int
                 pct_change = abs(adjusted_close / last_value - 1.0)
                 if pct_change > MARKET_JUMP_WARNING_THRESHOLD:
                     flags.append("large_price_jump")
+                    validation_flags.append("large_price_jump")
                     events.append(ValidationEvent(dataset_id, record_id, "warning", "large_price_jump", "Large price jump detected; review before analysis."))
             last_adjusted_close[str(symbol)] = float(adjusted_close)
 
@@ -276,9 +280,9 @@ def validate_market_records(frame: pd.DataFrame, stale_thresholds: dict[str, int
             rejected_rows.append(record)
         else:
             record["quality_flags"] = flags
-            record["quality_status"] = QualityStatus.warning if flags else QualityStatus.valid
+            record["quality_status"] = QualityStatus.warning if validation_flags else QualityStatus.valid
             accepted_rows.append(record)
-            for flag in flags:
+            for flag in validation_flags:
                 if flag != "large_price_jump":
                     events.append(ValidationEvent(dataset_id, record_id, "warning", flag, "Record passed validation with a caveat."))
 

@@ -55,6 +55,6 @@ def test_yaml_configuration_files_load_successfully():
 
     assert "assets" in assets
     assert "providers" in data_sources
-    assert len(assets["assets"]["market"]) == 9
-    assert all(entry["implementation_status"] == "planned" for entry in data_sources["providers"])
+    assert len(assets["assets"]["market"]) == 13
+    assert all(entry["implementation_status"] == "working" for entry in data_sources["providers"])
 

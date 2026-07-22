@@ -26,6 +26,8 @@ data/processed/*
 !data/processed/.gitkeep
 data/database/*
 !data/database/.gitkeep
+data/reports/*
+!data/reports/.gitkeep
 logs/
 *.tmp
 *.temp

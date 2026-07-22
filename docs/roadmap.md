@@ -1,26 +1,27 @@
 # Roadmap
 
-## Completed in Phase 2
+## Working Now
 
-- Provider adapters for FRED and market data
-- Immutable raw Parquet snapshots
-- Deterministic validation
-- DuckDB persistence
-- Data freshness reporting
-- Streamlit dashboard with market, macro, freshness, and methodology pages
+- FRED, daily market, official CFTC, and SPY/QQQ option ingestion
+- Immutable/timestamped raw snapshots and DuckDB observations
+- Deterministic macro, screener, Market Pressure, liquidity, positioning, options, and cross-module analytics
+- Persisted analytics with freshness, confidence, evidence, and limitations
+- Populated institutional-style Streamlit research pages
+- Offline synthetic test coverage
 
-## Next modules
+## Reasonable Next Milestones
 
-- Positioning
-- Options
-- Market Structure
-- Liquidity
-- Cross-Asset
+- Collect a longer local options-snapshot history
+- Add licensed data-provider adapters and source reconciliation
+- Add vintage-safe macro releases
+- Expand reviewed CFTC mappings and contract-to-cash-market relationships
+- Add portfolio case studies and reviewed screenshots
 
-## Later work
+## Explicitly Deferred
 
-- CFTC positioning ingestion
-- Options chains and gamma analytics
-- Structured AI strategist layer
-- Case-study writeups and presentation polish
-
+- LLM strategist
+- Machine learning
+- FastAPI
+- Authentication
+- Docker and deployment
+- Trading/execution workflows

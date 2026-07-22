@@ -1,31 +1,28 @@
 # Cross-Asset Derivatives Intelligence Platform
 
-Phase 2 is now the working baseline: data ingestion, validation, raw snapshot storage, DuckDB persistence, freshness reporting, and a professional Streamlit dashboard.
+A portfolio-grade, deterministic research dashboard for delayed cross-asset market data, liquidity proxies, CFTC positioning, and SPY/QQQ options. The application persists provider observations and calculated analytics in DuckDB so Streamlit can render useful results without recomputing every metric on each rerun.
 
-## What works now
+This is a research project, not a live feed, institutional data product, trade recommendation, or execution system.
 
-- Official FRED macro and rates ingestion
-- Replaceable yfinance market ingestion for the MVP asset universe
-- Immutable raw Parquet snapshots
-- Validated DuckDB tables
-- Data-quality events and freshness metadata
-- Streamlit pages for:
-  - Market Overview
-  - Macro Snapshot
-  - Data Freshness
-  - Methodology
+## Working Modules
 
-The platform is an end-of-day or delayed-data research system. It is not real time.
+- Market Overview with a deterministic "Today's Market Setup"
+- Macro Regime using official FRED observations
+- Cross-Asset Screener for 13 configured assets
+- Market Pressure Score with component-level weights and contributions
+- Liquidity & Market-Structure Proxies
+- Official CFTC positioning, crowding, reversal, and risk flags
+- SPY and QQQ options conditions, skew, expected move, open interest, and estimated gamma
+- Evidence-Based Market Summary with confirmations, contradictions, confidence, and limitations
+- Data Freshness and Methodology pages
 
-## Environment
+## Data Sources
 
-Create a local `.env` file with:
+- FRED: official macro, rates, credit, and reserve/liquidity series; requires `FRED_API_KEY`.
+- CFTC Public Reporting: official weekly, delayed Commitments of Traders data with exact configured contract codes.
+- yfinance/Yahoo Finance: replaceable, research-grade delayed daily OHLCV and current option-chain snapshots.
 
-```env
-FRED_API_KEY=your_fred_api_key_here
-```
-
-The repository also includes `.env.example` as a template.
+Configured market universe: SPY, QQQ, IWM, TLT, HYG, GLD, USO, UUP, `^VIX` (stored as VIX), SMH, XLF, XLE, and XLK.
 
 ## Setup
 
@@ -37,122 +34,112 @@ python -m venv .venv
 python -m pip install -r requirements.txt
 ```
 
-## Initialize the database
+Create `.env` locally:
+
+```env
+FRED_API_KEY=your_fred_api_key_here
+```
+
+The secret is ignored by Git and is never printed by the application.
+
+## Run the Product
+
+Initialize DuckDB:
 
 ```powershell
 python scripts/initialize_database.py
 ```
 
-This creates the DuckDB file at:
-
-```text
-data/database/cross_asset.duckdb
-```
-
-## Ingest data
-
-Ingest both providers:
+Retrieve the required datasets:
 
 ```powershell
-python scripts/ingest_data.py --provider all --start-date 2024-01-01
+python scripts/ingest_data.py --provider market
+python scripts/ingest_data.py --provider cftc
+python scripts/ingest_data.py --provider options --symbols SPY QQQ
 ```
 
-Ingest only FRED:
+FRED can be refreshed separately:
 
 ```powershell
-python scripts/ingest_data.py --provider fred --start-date 2024-01-01
+python scripts/ingest_data.py --provider fred
 ```
 
-Ingest only market data:
+Calculate and persist analytics:
 
 ```powershell
-python scripts/ingest_data.py --provider market --symbols SPY QQQ --start-date 2024-01-01
+python scripts/run_analytics.py
 ```
 
-Dry run:
-
-```powershell
-python scripts/ingest_data.py --provider all --start-date 2024-01-01 --dry-run
-```
-
-Optional arguments:
-
-- `--end-date`
-- `--symbols`
-- `--series`
-
-## Launch the dashboard
+Launch Streamlit:
 
 ```powershell
 python -m streamlit run app.py
 ```
 
-## Run tests
+Run offline tests:
 
 ```powershell
 python -m pytest
 ```
 
-## Current data sources
+Tests use synthetic data and do not call live providers.
 
-- FRED series:
-  - DFF
-  - DGS2
-  - DGS10
-  - T10Y2Y
-  - DFII10
-  - T10YIE
-  - CPIAUCSL
-  - CPILFESL
-  - UNRATE
-  - ICSA
-  - BAMLH0A0HYM2
-  - WALCL
-  - RRPONTSYD
-  - WTREGEN
-- Market symbols:
-  - SPY
-  - QQQ
-  - IWM
-  - TLT
-  - HYG
-  - GLD
-  - USO
-  - UUP
-  - VIX
+## Screener Methodology
 
-## Data limitations
+Daily-bar features include 1/5/20/60-day returns, 20/60-day moving-average distance, 20-day annualized realized volatility, relative volume, dollar volume, and rolling Amihud illiquidity percentile.
 
-- FRED observation dates are not release timestamps.
-- yfinance is a replaceable vendor source, not an institutional feed.
-- The dashboard is designed for delayed or end-of-day research, not live trading.
-- No options, CFTC positioning, AI strategist, or trading workflow is implemented yet.
+The Market Pressure Score ranges from -100 to +100:
 
-## Raw storage and DuckDB
+- Trend and momentum: 30%
+- Relative volume and price-volume confirmation: 20%
+- Volatility condition: 20%
+- Liquidity condition: 15%
+- CFTC positioning condition: 15%
 
-- Raw provider snapshots are stored as Parquet under `data/raw/fred/` and `data/raw/market/`.
-- Validated tables live in DuckDB.
-- Pipeline metadata is stored in `pipeline_runs`.
-- Validation issues are stored in `data_quality_events`.
-- Dataset freshness is summarized in `dataset_catalog`.
+Missing components are excluded rather than converted to zero. Available weights are redistributed proportionally, every contribution is stored, and confidence falls as coverage declines. The score is descriptive, not a buy or sell signal. See [docs/screener_methodology.md](docs/screener_methodology.md).
 
-## Current dashboard pages
+## Liquidity Methodology
 
-- Market Overview
-- Macro Snapshot
-- Data Freshness
-- Methodology
+The 0-100 stress proxy weights Amihud percentile (25%), realized-volatility percentile (20%), intraday-range percentile (15%), inverse relative dollar volume (15%), HYG stress (15%), and VIX stress (10%). It uses daily bars and cannot observe full order-book or transaction-cost conditions. See [docs/liquidity_proxy_methodology.md](docs/liquidity_proxy_methodology.md).
 
-## Planned future modules
+## CFTC Methodology
 
-- Positioning
-- Options
-- Market Structure
-- Liquidity
-- Cross-Asset
-- AI Strategist
+The pipeline uses exact official CFTC contract codes and rejects ambiguous mappings. Calculations are participant-category specific and include net position, weekly/four-week changes, net/open-interest, rolling percentiles and z-score, reversal, crowding, divergence, and descriptive liquidation/squeeze risks. Reports are weekly and delayed. See [docs/cftc_methodology.md](docs/cftc_methodology.md).
+
+## Options and Gamma Methodology
+
+Every SPY/QQQ retrieval is stored as an immutable timestamped snapshot. Analytics include put/call ratios, ATM and median IV, realized-versus-implied volatility, term structure, expected move, approximate 25-delta skew, open-interest concentration, and Black-Scholes Greeks.
+
+Estimated Gamma Exposure is `gamma x open interest x contract multiplier x spot^2`. Public chains do not reveal dealer inventory, so call/put signs are explicit user-selectable assumptions and sensitivity is shown. See [docs/options_methodology.md](docs/options_methodology.md) and [docs/gamma_methodology.md](docs/gamma_methodology.md).
+
+## Storage
+
+- Raw snapshots: `data/raw/{fred,market,cftc,options}/`
+- DuckDB: `data/database/cross_asset.duckdb`
+- Reports: `data/reports/`
+- Pipeline diagnostics: `pipeline_runs` and `data_quality_events`
+- Prepared outputs: screener, pressure, liquidity, positioning, options, analytics-run, and cross-module summary tables
+
+Generated data, databases, reports, local secrets, and virtual environments are excluded from Git.
+
+## Known Limitations
+
+- Market and options vendor data are free, delayed/research-grade, and replaceable.
+- Option quotes can be stale, crossed, incomplete, or missing; snapshot history starts locally.
+- Gamma signs are assumptions, not observed dealer inventory.
+- CFTC data are weekly and delayed; category definitions differ by report type.
+- FRED observation dates are not always release timestamps, and history is not vintage-safe.
+- Daily-bar liquidity proxies do not measure order-book depth, effective spreads, realized spreads, or exchange fragmentation.
+- No score or flag is a directional prediction or recommendation.
+
+See [docs/limitations.md](docs/limitations.md) for the full list.
 
 ## Screenshots
 
-Add screenshots later once the dashboard styling is finalized. A good place to store them is `docs/screenshots/`.
+Screenshot placeholders for the portfolio presentation:
 
+- `docs/screenshots/market-overview.png`
+- `docs/screenshots/cross-asset-screener.png`
+- `docs/screenshots/options-analysis.png`
+
+Add screenshots after reviewing the populated application locally.

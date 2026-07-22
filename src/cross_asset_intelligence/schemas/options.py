@@ -18,6 +18,7 @@ class OptionContractObservation(StandardObservation):
     underlying_spot: float | None = None
     quote_timestamp: datetime | None = None
     expiration: date | None = None
+    contract_symbol: str | None = None
     strike: float | None = None
     option_type: str | None = None
     contract_multiplier: float | None = None
@@ -27,6 +28,7 @@ class OptionContractObservation(StandardObservation):
     implied_volatility: float | None = None
     volume: int | None = None
     open_interest: int | None = None
+    in_the_money: bool | None = None
 
     @field_validator("quote_timestamp")
     @classmethod
