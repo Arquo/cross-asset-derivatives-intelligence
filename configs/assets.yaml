@@ -1,0 +1,192 @@
+assets:
+  stale_thresholds:
+    daily: 3
+    weekly: 10
+    monthly: 45
+    quarterly: 120
+  fred_series:
+    - series_id: DFF
+      display_name: Effective Federal Funds Rate
+      category: rates and policy
+      expected_frequency: daily
+      expected_unit: percent
+      source_type: official
+      stale_after_days: 3
+      enabled: true
+    - series_id: DGS2
+      display_name: 2-Year Treasury Yield
+      category: rates and policy
+      expected_frequency: daily
+      expected_unit: percent
+      source_type: official
+      stale_after_days: 3
+      enabled: true
+    - series_id: DGS10
+      display_name: 10-Year Treasury Yield
+      category: rates and policy
+      expected_frequency: daily
+      expected_unit: percent
+      source_type: official
+      stale_after_days: 3
+      enabled: true
+    - series_id: T10Y2Y
+      display_name: 10Y Minus 2Y Treasury Spread
+      category: rates and policy
+      expected_frequency: daily
+      expected_unit: percentage points
+      source_type: official
+      stale_after_days: 3
+      enabled: true
+    - series_id: DFII10
+      display_name: 10-Year Real Yield
+      category: rates and policy
+      expected_frequency: daily
+      expected_unit: percent
+      source_type: official
+      stale_after_days: 3
+      enabled: true
+    - series_id: T10YIE
+      display_name: 10-Year Breakeven Inflation Rate
+      category: rates and policy
+      expected_frequency: daily
+      expected_unit: percent
+      source_type: official
+      stale_after_days: 3
+      enabled: true
+    - series_id: CPIAUCSL
+      display_name: Consumer Price Index
+      category: macro
+      expected_frequency: monthly
+      expected_unit: index
+      source_type: official
+      stale_after_days: 45
+      enabled: true
+    - series_id: CPILFESL
+      display_name: Core Consumer Price Index
+      category: macro
+      expected_frequency: monthly
+      expected_unit: index
+      source_type: official
+      stale_after_days: 45
+      enabled: true
+    - series_id: UNRATE
+      display_name: Unemployment Rate
+      category: macro
+      expected_frequency: monthly
+      expected_unit: percent
+      source_type: official
+      stale_after_days: 45
+      enabled: true
+    - series_id: ICSA
+      display_name: Initial Unemployment Claims
+      category: macro
+      expected_frequency: weekly
+      expected_unit: claims
+      source_type: official
+      stale_after_days: 10
+      enabled: true
+    - series_id: BAMLH0A0HYM2
+      display_name: ICE BofA U.S. High Yield OAS
+      category: credit
+      expected_frequency: daily
+      expected_unit: percent
+      source_type: official
+      stale_after_days: 3
+      enabled: true
+    - series_id: WALCL
+      display_name: Federal Reserve Total Assets
+      category: liquidity
+      expected_frequency: weekly
+      expected_unit: billions_usd
+      source_type: official
+      stale_after_days: 10
+      enabled: true
+    - series_id: WTREGEN
+      display_name: Treasury General Account
+      category: liquidity
+      expected_frequency: weekly
+      expected_unit: billions_usd
+      source_type: official
+      stale_after_days: 10
+      enabled: true
+    - series_id: RRPONTSYD
+      display_name: Overnight Reverse Repurchase Agreements
+      category: liquidity
+      expected_frequency: daily
+      expected_unit: billions_usd
+      source_type: official
+      stale_after_days: 3
+      enabled: true
+    - series_id: WRESBAL
+      display_name: Reserve Balances with Federal Reserve Banks
+      category: liquidity
+      expected_frequency: weekly
+      expected_unit: billions_usd
+      source_type: official
+      stale_after_days: 10
+      enabled: true
+  market: &market_symbols
+    - internal_symbol: SPY
+      provider_symbol: SPY
+      display_name: SPDR S&P 500 ETF Trust
+      asset_class: etf
+      currency: USD
+      timezone: America/New_York
+      enabled: true
+    - internal_symbol: QQQ
+      provider_symbol: QQQ
+      display_name: Invesco QQQ Trust
+      asset_class: etf
+      currency: USD
+      timezone: America/New_York
+      enabled: true
+    - internal_symbol: IWM
+      provider_symbol: IWM
+      display_name: iShares Russell 2000 ETF
+      asset_class: etf
+      currency: USD
+      timezone: America/New_York
+      enabled: true
+    - internal_symbol: TLT
+      provider_symbol: TLT
+      display_name: iShares 20+ Year Treasury Bond ETF
+      asset_class: etf
+      currency: USD
+      timezone: America/New_York
+      enabled: true
+    - internal_symbol: HYG
+      provider_symbol: HYG
+      display_name: iShares iBoxx $ High Yield Corporate Bond ETF
+      asset_class: etf
+      currency: USD
+      timezone: America/New_York
+      enabled: true
+    - internal_symbol: GLD
+      provider_symbol: GLD
+      display_name: SPDR Gold Shares
+      asset_class: etf
+      currency: USD
+      timezone: America/New_York
+      enabled: true
+    - internal_symbol: USO
+      provider_symbol: USO
+      display_name: United States Oil Fund
+      asset_class: etf
+      currency: USD
+      timezone: America/New_York
+      enabled: true
+    - internal_symbol: UUP
+      provider_symbol: UUP
+      display_name: Invesco DB US Dollar Index Bullish Fund
+      asset_class: etf
+      currency: USD
+      timezone: America/New_York
+      enabled: true
+    - internal_symbol: VIX
+      provider_symbol: ^VIX
+      display_name: CBOE Volatility Index
+      asset_class: volatility
+      currency: USD
+      timezone: America/New_York
+      enabled: true
+  market_symbols: *market_symbols

@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cross_asset_intelligence"
+version = "0.1.0"
+description = "Foundation package for the Cross-Asset Derivatives Intelligence Platform."
+requires-python = ">=3.11"
+dependencies = [
+    "streamlit",
+    "pandas",
+    "numpy",
+    "plotly",
+    "requests",
+    "python-dotenv",
+    "pydantic",
+    "pyyaml",
+    "pytest",
+    "duckdb",
+    "pyarrow",
+    "yfinance",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["cross_asset_intelligence*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
